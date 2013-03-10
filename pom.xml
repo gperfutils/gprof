@@ -1,0 +1,27 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.googlecode.gprof</groupId>
+  <artifactId>gbench</artifactId>
+  <packaging>jar</packaging>
+  <name>GProf</name>
+  <version>@version@</version>
+  <description>GProf is a profiling module for Groovy</description>
+  <url>http://code.google.com/p/gprof</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+  <scm>
+    <connection>scm:git:https://code.google.com/p/gprof/</connection>
+    <developerConnection>scm:git:https://code.google.com/p/gprof/</developerConnection>
+    <url>https://code.google.com/p/gprof/source/browse/</url>
+  </scm>
+</project>
