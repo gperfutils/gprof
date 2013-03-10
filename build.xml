@@ -1,0 +1,352 @@
+<project name="GProf" default="dist" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+  <property name="id" value="gprof" />
+  <property name="version" value="0.1.0" />
+  <property name="vendor" value="Nagai Masato" />
+
+  <!-- directories -->
+  <property name="src.dir" value="src" />
+  <property name="src.main.dir" value="src/main" />
+  <property name="src.test.dir" value="src/test" />
+  <property name="lib.dir" value="lib" />
+  <property name="build.dir" value="build" />
+  <property name="dist.dir" value="dist" />
+  <property name="install.dir" value="install" />
+
+  <!-- groovy 1.7 -->
+  <property name="groovy.1.7.version.minor" value="11" />
+  <!-- groovy 1.8 -->
+  <property name="groovy.1.8.version.minor" value="9" />
+  <!-- groovy 2.0 -->
+  <property name="groovy.2.0.version.minor" value="7" />
+  <!-- groovy 2.1 -->
+  <property name="groovy.2.1.version.minor" value="1" />
+
+  <!-- default groovy -->
+  <property name="groovy.version.major" value="2.1" />
+  <property name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+
+  <!-- preprocessor (see: http://prebop.sourceforge.net/) -->
+  <taskdef name="preprocess" classname="com.objfac.prebop.ant.PreprocessorTask">
+    <classpath>
+      <pathelement location="${lib.dir}/preprocessor.jar"/>
+    </classpath>
+  </taskdef>
+
+  <target name="-preprocess">
+    <preprocess indir="${pp.src.dir}" outdir="${pp.dst.dir}" out="replace">
+      <var name="version" value="${groovy.version.major}.${groovy.version.minor}"/>
+      <filetype commentend="*/" commentbegin="/*" extensions="groovy"/>
+    </preprocess>
+  </target>
+
+  <!-- binary optimizer (see: http://www.sable.mcgill.ca/soot/) -->
+  <taskdef name="soot" classname="soot.AntTask">
+    <classpath>
+      <pathelement location="${lib.dir}/soot-2.5.0.jar"/>
+    </classpath>
+  </taskdef>
+
+  <target name="-optimize">
+    <path id="soot.classpath">
+      <pathelement location="${java.home}/lib/rt.jar" />
+      <path refid="compile.classpath" />
+      <pathelement location="${classes.main.dir}" />
+    </path>
+    <pathconvert targetos="unix" property="soot.classpath.s" refid="soot.classpath"/>
+    <soot process_dir="${classes.main.dir}" output_dir="${classes.main.dir}"
+      soot_classpath="${soot.classpath.s}"
+      optimize="true" />
+  </target>
+
+  <!-- maven ant tasks -->
+  <property name="maven.repo.url" value="http://repo1.maven.org/maven2" />
+  <property name="maven.ant.tasks.url" value="${maven.repo.url}/org/apache/maven/maven-ant-tasks/2.1.3/maven-ant-tasks-2.1.3.jar" />
+  <property name="maven.ant.tasks.jar" value="${lib.dir}/maven-ant-tasks-2.1.3.jar" />
+  <available property="maven.ant.tasks.jar.exists" file="${maven.ant.tasks.jar}" />
+  
+  <!-- maven snapshots and staging repository id and url -->
+  <property name="maven-snapshots-repository-id" value="sonatype-nexus-snapshots" />
+  <property name="maven-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
+  <property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
+  <property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
+
+  <target name="-bootstrap-maven-tasks" unless="maven.ant.tasks.jar.exists">
+    <mkdir dir="${lib.dir}" />
+    <get src="${maven.ant.tasks.url}" dest="${maven.ant.tasks.jar}" />
+  </target>
+
+  <target name="-init-maven-tasks" depends="-bootstrap-maven-tasks">
+    <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpath="${maven.ant.tasks.jar}" />
+  </target>
+
+  <target name="clean" description="Clean up build artifacts.">
+    <delete dir="${build.dir}" />
+    <delete dir="${dist.dir}" />
+  </target>
+
+  <target name="dist" description="Create everything needed for distribution.">
+    <antcall target="binary-all" />
+    <antcall target="source" />
+    <antcall target="javadoc" />
+  </target>
+  
+  <target name="source" description="Create the source archive.">
+    <zip destfile="${dist.dir}/${id}-${version}-sources.jar" basedir="." includes="src/**" />
+  </target>
+
+  <target name="javadoc" description="Create the javadoc archive." depends="-init-maven-tasks">
+    <artifact:dependencies pathId="groovydoc.classpath">
+      <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version.major}.${groovy.version.minor}" />
+    </artifact:dependencies>
+    <taskdef name="groovydoc" classname="org.codehaus.groovy.ant.Groovydoc" classpathref="groovydoc.classpath" />
+    <groovydoc destdir="${build.dir}/doc" sourcepath="${buld.pp.main.dir}" packagenames="**.*" use="true" private="false">
+      <link packages="java.,org.xml.,javax.,org.xml." href="http://download.oracle.com/javase/6/docs/api" />
+      <link packages="groovy.,org.codehaus.groovy." href="http://groovy.codehaus.org/api" />
+      <link packages="org.apache.tools.ant." href="http://evgeny-goldin.org/javadoc/ant/api" />
+      <link packages="org.junit.,junit.framework." href="http://kentbeck.github.com/junit/javadoc/latest" />
+      <link packages="org.codehaus.gmaven." href="http://evgeny-goldin.org/javadoc/gmaven" />
+    </groovydoc>
+    <zip destfile="${dist.dir}/${id}-${version}-javadoc.jar" basedir="${build.dir}" includes="doc/**" update="true" />
+  </target>
+
+  <target name="binary-all" description="Create the binary archives for all the supported versions of Groovy.">
+    <antcall target="binary">
+      <param name="groovy.version.major" value="1.7" />
+      <param name="groovy.version.minor" value="${groovy.1.7.version.minor}" />
+    </antcall>
+    <antcall target="binary">
+      <param name="groovy.version.major" value="1.8" />
+      <param name="groovy.version.minor" value="${groovy.1.8.version.minor}" />
+    </antcall>
+    <antcall target="binary">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="binary">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
+  </target>
+
+  <target name="binary" depends="test" description="Create the binary archive.">
+    <jar destfile="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}.jar">
+      <fileset dir="${classes.main.dir}" />
+      <manifest>
+        <attribute name="Built-By" value="${vendor}" />
+        <attribute name="Implementation-Vendor" value="${vendor}" />
+        <attribute name="Implementation-Title" value="${ant.project.name}" />
+        <attribute name="Implementation-Version" value="${version}-groovy-${groovy.version.major}" />
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="compile" description="Compile the main code." depends="-init-maven-tasks">
+    <property name="build.src.main.dir" value="${build.dir}/src/main" />
+
+    <antcall target="-preprocess">
+      <param name="pp.src.dir" value="${src.main.dir}" />
+      <param name="pp.dst.dir" value="${build.src.main.dir}" />
+    </antcall>
+
+    <property name="groovy.version" value="${groovy.version.major}.${groovy.version.minor}" />
+    <echo message="Compiling the main code with Groovy ${groovy.version}..." />
+
+    <property name="classes.main.dir" value="${build.dir}/${groovy.version.major}/main/classes" />
+    <mkdir dir="${classes.main.dir}" />
+
+    <artifact:dependencies pathId="compile.classpath">
+      <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version}" />
+      <dependency groupId="commons-cli" artifactId="commons-cli" version="1.2" />
+    </artifact:dependencies>
+
+    <copy todir="${classes.main.dir}">
+      <fileset dir="${build.src.main.dir}" excludes="**/*.java,**/*.groovy"/>
+    </copy>
+
+    <taskdef name="groovyc" classname="org.codehaus.groovy.ant.Groovyc" classpathref="compile.classpath" />
+    <groovyc srcdir="${build.src.main.dir}/groovy" destdir="${classes.main.dir}" classpathref="compile.classpath">
+      <javac source="1.5" target="1.5" debug="on" />
+      <classpath>
+        <pathelement path="${classes.main.dir}" />
+      </classpath>
+    </groovyc>
+
+    <antcall target="-optimize" inheritRefs="true">
+    </antcall>
+  </target>
+
+  <target name="compile-test" description="Compile the test code." depends="compile">
+    <property name="groovy.version" value="${groovy.version.major}.${groovy.version.minor}" />
+    <echo message="Compiling the test code with Groovy ${groovy.version}..." />
+
+    <property name="build.src.test.dir" value="${build.dir}/src/test" />
+
+    <antcall target="-preprocess">
+      <param name="pp.src.dir" value="${src.test.dir}" />
+      <param name="pp.dst.dir" value="${build.src.test.dir}" />
+    </antcall>
+
+    <artifact:dependencies pathId="compile.classpath">
+      <dependency groupId="org.codehaus.groovy" artifactId="groovy" version="${groovy.version}" />
+      <dependency groupId="junit" artifactId="junit" version="4.8.2" />
+      <dependency groupId="commons-cli" artifactId="commons-cli" version="1.2" />
+    </artifact:dependencies>
+
+    <property name="classes.test.dir" value="${build.dir}/${groovy.version.major}/test/classes" />
+    <mkdir dir="${classes.test.dir}" />
+
+    <groovyc srcdir="${build.src.test.dir}/groovy" destdir="${classes.test.dir}" classpathref="compile.classpath">
+      <javac source="1.5" target="1.5" debug="on" />
+      <classpath>
+        <pathelement path="${classes.main.dir}" />
+        <pathelement path="${classes.test.dir}" />
+      </classpath>
+    </groovyc>
+  </target>
+
+  <target name="test" description="Compile and run the test code." depends="compile-test">
+    <junit haltonfailure="on">
+      <classpath>
+        <path refid="compile.classpath" />
+        <pathelement path="${classes.main.dir}" />
+        <pathelement path="${classes.test.dir}" />
+      </classpath>
+      <formatter type="brief" usefile="false" />
+      <batchtest>
+        <fileset dir="${classes.test.dir}">
+          <include name="**/*Test.class" />
+        </fileset>
+      </batchtest>
+    </junit>
+  </target>
+  
+  <target name="test-all" description="Compile and run the test code for all the supported versions of Groovy.">
+    <antcall target="test">
+      <param name="groovy.version.major" value="1.7" />
+      <param name="groovy.version.minor" value="${groovy.1.7.version.minor}" />
+    </antcall>
+    <antcall target="test">
+      <param name="groovy.version.major" value="1.8" />
+      <param name="groovy.version.minor" value="${groovy.1.8.version.minor}" />
+    </antcall>
+    <antcall target="test">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="test">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
+  </target>
+  
+  <target name="deploy" depends="-init-maven-tasks,binary" 
+          description="Deploy snapshot version to Maven snapshot repository.">
+    <property name="maven.artifact.version" value="${version}-groovy-${groovy.version.major}-SNAPSHOT" />
+    <echo message="Deploying ${maven.artifact.version}..." />
+    <property name="deploy.dir" value="${dist.dir}" />
+    <property name="maven.artifact.prefix" value="${id}-${maven.artifact.version}" />
+    <property name="maven.pom" value="${deploy.dir}/${maven.artifact.prefix}.pom" />
+    <property name="maven.jar" value="${deploy.dir}/${maven.artifact.prefix}.jar" />
+    <copy file="pom.xml" tofile="${maven.pom}" />    
+    <replace file="${maven.pom}" token="@version@" value="${maven.artifact.version}" />
+    <copy file="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}.jar" tofile="${maven.jar}" />    
+    
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+      <arg value="-Durl=${maven-snapshots-repository-url}" />
+      <arg value="-DrepositoryId=${maven-snapshots-repository-id}" />
+      <arg value="-DpomFile=${maven.pom}" />
+      <arg value="-Dfile=${maven.jar}" />
+    </artifact:mvn>
+  </target>
+  
+  <target name="deploy-all" 
+          description="Deploy snapshot versions for all the supported versions of Groovy to Maven snapshot repository.">
+    <antcall target="deploy">
+      <param name="groovy.version.major" value="1.7" />
+      <param name="groovy.version.minor" value="${groovy.1.7.version.minor}" />
+    </antcall>
+    <antcall target="deploy">
+      <param name="groovy.version.major" value="1.8" />
+      <param name="groovy.version.minor" value="${groovy.1.8.version.minor}" />
+    </antcall>
+    <antcall target="deploy">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="deploy">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
+  </target>
+
+  <target name="stage-all" 
+          description="Deploy release versions for all the supported versions of Groovy to Maven staging repository.">
+    <antcall target="stage">
+      <param name="groovy.version.major" value="1.7" />
+      <param name="groovy.version.minor" value="${groovy.1.7.version.minor}" />
+    </antcall>
+    <antcall target="stage">
+      <param name="groovy.version.major" value="1.8" />
+      <param name="groovy.version.minor" value="${groovy.1.8.version.minor}" />
+    </antcall>
+    <antcall target="stage">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="stage">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
+  </target>
+  
+   <target name="stage" depends="-init-maven-tasks,binary,source,javadoc" 
+            description="Deploy release version to Maven staging repository">
+    <property name="maven.artifact.version" value="${version}-groovy-${groovy.version.major}" />
+    <echo message="Deploying ${maven.artifact.version}..." />
+    <property name="deploy.dir" value="${dist.dir}" />
+    <property name="maven.artifact.prefix" value="${id}-${maven.artifact.version}" />
+    <property name="maven.pom" value="${deploy.dir}/${maven.artifact.prefix}.pom" />
+    <property name="maven.jar" value="${deploy.dir}/${maven.artifact.prefix}.jar" />
+    <property name="maven.sources.jar" value="${deploy.dir}/${maven.artifact.prefix}-sources.jar" />
+    <property name="maven.javadoc.jar" value="${deploy.dir}/${maven.artifact.prefix}-javadoc.jar" />
+    <copy file="pom.xml" tofile="${maven.pom}" />    
+    <replace file="${maven.pom}" token="@version@" value="${maven.artifact.version}" />
+    <copy file="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}.jar" tofile="${maven.jar}" />    
+    <copy file="${dist.dir}/${id}-${version}-sources.jar" tofile="${maven.sources.jar}" />    
+    <copy file="${dist.dir}/${id}-${version}-javadoc.jar" tofile="${maven.javadoc.jar}" />    
+     
+    <!-- sign and deploy the main artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${maven-staging-repository-url}" />
+      <arg value="-DrepositoryId=${maven-staging-repository-id}" />
+      <arg value="-DpomFile=${maven.pom}" />
+      <arg value="-Dfile=${maven.jar}" />
+      <arg value="-Pgpg" />
+    </artifact:mvn>
+
+    <!-- sign and deploy the sources artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${maven-staging-repository-url}" />
+      <arg value="-DrepositoryId=${maven-staging-repository-id}" />
+      <arg value="-DpomFile=${maven.pom}" />
+      <arg value="-Dfile=${maven.sources.jar}" />
+      <arg value="-Dclassifier=sources" />
+      <arg value="-Pgpg" />
+    </artifact:mvn>
+
+    <!-- sign and deploy the javadoc artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${maven-staging-repository-url}" />
+      <arg value="-DrepositoryId=${maven-staging-repository-id}" />
+      <arg value="-DpomFile=${maven.pom}" />
+      <arg value="-Dfile=${maven.javadoc.jar}" />
+      <arg value="-Dclassifier=javadoc" />
+      <arg value="-Pgpg" />
+    </artifact:mvn>
+  </target>
+  
+</project>
