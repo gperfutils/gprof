@@ -52,12 +52,14 @@ class Profiler implements Interceptor {
 
     @Override
     Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-        def className = object instanceof Class ? object.name : object.class.name
+        def className = object.class.name
+        if (methodName == 'ctor') {
+          // ctor comes w/ Class object
+          className = object.name
+          methodName = '<ctor>'
+        }
         if (!prof.classes[className]) {
             prof.classes[className] = [ methods: [:] ]
-        }
-        if (methodName == 'ctor') {
-          methodName = '<init>'
         }
         def cprof = prof.classes[className]
         if (!cprof.methods[methodName]) {
