@@ -18,7 +18,7 @@ package gprof;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileEntry {
+public class ProfileMethodEntry {
 
     private String className;
     private String methodName;
@@ -26,7 +26,7 @@ public class ProfileEntry {
     private ProfileTime time;
     private ProfileTime timePerCall;
 
-    public ProfileEntry(String className, String methodName) {
+    public ProfileMethodEntry(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
         this.callEntries = new ArrayList();
@@ -53,4 +53,5 @@ public class ProfileEntry {
     public ProfileTime getTimePerCall() {
         return timePerCall;
     }
+
 }

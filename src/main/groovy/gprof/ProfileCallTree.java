@@ -18,43 +18,62 @@ package gprof;
 import groovy.lang.Closure;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class ProfileTree<T> {
+public class ProfileCallTree {
 
-    public static class Node<T> {
-        private T data;
-        private Node<T> parent;
-        private List<Node<T>> children;
+    private Node root;
 
-        public Node(T data) {
+    public ProfileCallTree() {
+        this.root = new Node(null);
+    }
+
+    public Node getRoot() {
+        return root;
+    }
+
+    @Override
+    public String toString() {
+        return root.toString();
+    }
+
+    public static class Node {
+
+        private ProfileCallEntry data;
+        private Node parent;
+        private List<Node> children;
+
+        public Node(ProfileCallEntry data) {
             this.data = data;
-            children = new ArrayList();
         }
 
-        public void setParent(Node<T> parent) {
+        public void setParent(Node parent) {
             this.parent = parent;
         }
-        public Node<T> getParent() {
+
+        public Node getParent() {
             return parent;
         }
-        public void addChild(Node<T> child) {
-            children.add(child);
+
+        public void addChild(Node child) {
+            getChildren().add(child);
         }
 
-        public List<Node<T>> getChildren() {
-            return Collections.unmodifiableList(children);
+        public List<Node> getChildren() {
+            if (children == null) {
+                children = new ArrayList(1);
+            }
+            return children;
         }
 
-        public T getData() {
+        public ProfileCallEntry getData() {
             return data;
         }
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder(String.format("%s", data));
-            for (Node<T> child : children) {
+            for (Node child : getChildren()) {
                 sb.append("\n");
                 sb.append(String.format("    %s", child));
             }
@@ -62,36 +81,11 @@ public class ProfileTree<T> {
         }
 
         public void walk(Closure c) {
-            for (Node child: getChildren()) {
+            for (Node child : getChildren()) {
                 c.call(child);
                 child.walk(c);
             }
         }
     }
 
-    private Node<T> root;
-
-    public ProfileTree(Node<T> root) {
-        this.root = root;
-    }
-
-    public Node<T> getRoot() {
-        return root;
-    }
-
-    public void walk(Closure c) {
-        doWalk(root, c);
-    }
-
-    private void doWalk(Node<T> node, Closure c) {
-        c.call(node);
-        for (Node child: node.getChildren()) {
-            doWalk(child, c);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return root.toString();
-    }
 }
