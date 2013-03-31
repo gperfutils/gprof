@@ -24,14 +24,14 @@ public class ProfileMethodEntry {
     private String methodName;
     private List<ProfileCallEntry> callEntries;
     private ProfileTime time;
+    private ProfileTime minTime;
+    private ProfileTime maxTime;
     private ProfileTime timePerCall;
 
     public ProfileMethodEntry(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
         this.callEntries = new ArrayList();
-        time = new ProfileTime(0L);
-        timePerCall = new ProfileTime(0L);
     }
 
     public String getClassName() {
@@ -52,6 +52,22 @@ public class ProfileMethodEntry {
 
     public ProfileTime getTimePerCall() {
         return timePerCall;
+    }
+
+    public ProfileTime getMinTime() {
+        return minTime;
+    }
+
+    public void setMinTime(ProfileTime minTime) {
+        this.minTime = minTime;
+    }
+
+    public ProfileTime getMaxTime() {
+        return maxTime;
+    }
+
+    public void setMaxTime(ProfileTime maxTime) {
+        this.maxTime = maxTime;
     }
 
     public void setTime(ProfileTime time) {

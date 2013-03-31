@@ -39,7 +39,17 @@ public class ProfileFlatPrinter {
                 }
                 methodEntry.getCallEntries().add(callEntry);
                 ProfileTime theTime = callEntry.getEndTime().minus(callEntry.getStartTime());
-                methodEntry.setTime(methodEntry.getTime().plus(theTime));
+                if (methodEntry.getTime() == null) {
+                   methodEntry.setTime(theTime);
+                } else {
+                    methodEntry.setTime(methodEntry.getTime().plus(theTime));
+                }
+                if (methodEntry.getMinTime() == null || methodEntry.getMinTime().compareTo(theTime) > 0) {
+                    methodEntry.setMinTime(theTime);
+                }
+                if (methodEntry.getMaxTime() == null || methodEntry.getMaxTime().compareTo(theTime) < 0) {
+                    methodEntry.setMaxTime(theTime);
+                }
                 if (node.hasParent()) {
                     ProfileCallEntry parent = node.getParent().getData();
                     if (parent != null) {
@@ -65,7 +75,9 @@ public class ProfileFlatPrinter {
             row.put(COLUMN.TIME_PERCENT, String.format("%.2f", methodEntry.getTime().milliseconds() / time.milliseconds() * 100));
             row.put(COLUMN.TIME_TOTAL, String.format("%.2f", methodEntry.getTime().milliseconds()));
             row.put(COLUMN.CALLS, String.format("%d", methodEntry.getCallEntries().size()));
-            row.put(COLUMN.TIME_PER_CALL, String.format("%d", methodEntry.getTimePerCall().nanoseconds()));
+            row.put(COLUMN.TIME_MIN, String.format("%.2f", methodEntry.getMinTime().milliseconds()));
+            row.put(COLUMN.TIME_MAX, String.format("%.2f", methodEntry.getMaxTime().milliseconds()));
+            row.put(COLUMN.TIME_AVG, String.format("%.2f", methodEntry.getTimePerCall().milliseconds()));
             row.put(COLUMN.METHOD_NAME, methodEntry.getMethodName());
             row.put(COLUMN.CLASS_NAME, methodEntry.getClassName());
             rows.add(row);
@@ -85,38 +97,48 @@ public class ProfileFlatPrinter {
                 "%%-%ds" + // time percent
                 "%s" + "%%-%ds" + // time total
                 "%s" + "%%-%ds" + // calls
-                "%s" + "%%-%ds" + // time per call
+                "%s" + "%%-%ds" + // time min
+                "%s" + "%%-%ds" + // time max
+                "%s" + "%%-%ds" + // time avg
                 "%s" + "%%-%ds" + // method name
                 "%s" + "%%-%ds" + // class name
                 "%n",
                 colSizeMap.get(COLUMN.TIME_PERCENT), SP,
                 colSizeMap.get(COLUMN.TIME_TOTAL), SP,
                 colSizeMap.get(COLUMN.CALLS), SP,
-                colSizeMap.get(COLUMN.TIME_PER_CALL), SP,
+                colSizeMap.get(COLUMN.TIME_MIN), SP,
+                colSizeMap.get(COLUMN.TIME_MAX), SP,
+                colSizeMap.get(COLUMN.TIME_AVG), SP,
                 colSizeMap.get(COLUMN.METHOD_NAME), SP,
                 colSizeMap.get(COLUMN.CLASS_NAME));
         writer.printf(headerFormat,
                 COLUMN.TIME_PERCENT.name, COLUMN.TIME_TOTAL.name, COLUMN.CALLS.name,
-                COLUMN.TIME_PER_CALL.name, COLUMN.METHOD_NAME.name, COLUMN.CLASS_NAME.name);
+                COLUMN.TIME_MIN.name, COLUMN.TIME_MAX.name, COLUMN.TIME_AVG.name,
+                COLUMN.METHOD_NAME.name, COLUMN.CLASS_NAME.name);
 
         String rowFormat = String.format(
                 "%%%ds" + // time percent
                 "%s" + "%%%ds" + // time total
                 "%s" + "%%%ds" + // calls
-                "%s" + "%%%ds" + // time per call
+                "%s" + "%%%ds" + // time max
+                "%s" + "%%%ds" + // time min
+                "%s" + "%%%ds" + // time avg
                 "%s" + "%%-%ds" + // method name
                 "%s" + "%%-%ds" + // class name
                 "%n",
                 colSizeMap.get(COLUMN.TIME_PERCENT), SP,
                 colSizeMap.get(COLUMN.TIME_TOTAL), SP,
                 colSizeMap.get(COLUMN.CALLS), SP,
-                colSizeMap.get(COLUMN.TIME_PER_CALL), SP,
+                colSizeMap.get(COLUMN.TIME_MIN), SP,
+                colSizeMap.get(COLUMN.TIME_MAX), SP,
+                colSizeMap.get(COLUMN.TIME_AVG), SP,
                 colSizeMap.get(COLUMN.METHOD_NAME), SP,
                 colSizeMap.get(COLUMN.CLASS_NAME));
         for (Map<COLUMN, String> row : rows) {
                 writer.printf(rowFormat,
                         row.get(COLUMN.TIME_PERCENT), row.get(COLUMN.TIME_TOTAL), row.get(COLUMN.CALLS),
-                        row.get(COLUMN.TIME_PER_CALL), row.get(COLUMN.METHOD_NAME), row.get(COLUMN.CLASS_NAME));
+                        row.get(COLUMN.TIME_MIN), row.get(COLUMN.TIME_MAX), row.get(COLUMN.TIME_AVG),
+                        row.get(COLUMN.METHOD_NAME), row.get(COLUMN.CLASS_NAME));
         }
 
         writer.flush();
@@ -124,7 +146,8 @@ public class ProfileFlatPrinter {
 
     public enum COLUMN {
 
-        TIME_PERCENT("%"), TIME_TOTAL("ms"), CALLS("calls"), TIME_PER_CALL("ns/call"),
+        TIME_PERCENT("%"), TIME_TOTAL("sum(ms)"), CALLS("calls"),
+        TIME_MAX("max(ms)"), TIME_MIN("min(ms)"), TIME_AVG("avg(ms)"),
         METHOD_NAME("method"), CLASS_NAME("class");
 
         private String name;
