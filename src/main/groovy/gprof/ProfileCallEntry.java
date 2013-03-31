@@ -19,12 +19,20 @@ public class ProfileCallEntry {
 
     private String className;
     private String methodName;
-    private ProfileTime time;
+    private ProfileTime startTime;
+    private ProfileTime endTime;
 
-    public ProfileCallEntry(String className, String methodName, long ns) {
+    public ProfileCallEntry(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
-        this.time = new ProfileTime(ns);
+    }
+
+    public void setStartTime(ProfileTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public void setEndTime(ProfileTime endTime) {
+        this.endTime = endTime;
     }
 
     public String getClassName() {
@@ -35,16 +43,13 @@ public class ProfileCallEntry {
         return methodName;
     }
 
-    public ProfileTime getTime() {
-        return time;
-    }
-
     @Override
     public String toString() {
         return "ProfileCallEntry{" +
                 "className='" + className + '\'' +
                 ", methodName='" + methodName + '\'' +
-                ", time=" + time +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
                 '}';
     }
 }
