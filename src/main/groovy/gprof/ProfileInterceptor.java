@@ -33,7 +33,6 @@ public class ProfileInterceptor implements Interceptor {
 
         nodeStack.push(node);
         timeStack.push(System.nanoTime());
-
         return null;
     }
 
