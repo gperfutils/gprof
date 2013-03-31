@@ -54,4 +54,11 @@ public class ProfileMethodEntry {
         return timePerCall;
     }
 
+    public void setTime(ProfileTime time) {
+        this.time = time;
+    }
+
+    public void setTimePerCall(ProfileTime timePerCall) {
+        this.timePerCall = timePerCall;
+    }
 }
