@@ -4,21 +4,18 @@ import org.junit.Test
 import static org.junit.Assert.*
 
 class ProfilerTest {
-    String atoz() {
-        StringBuffer sb = new StringBuffer();
-        ('a'..'z').each { sb.append(it) }
-        sb.toString()
+
+    String sleep100() {
+        Thread.sleep(100)
     }
-    String AtoZ() {
-        StringBuffer sb = new StringBuffer();
-        ('A'..'Z').each { sb.append(it) }
-        sb.toString()
+    String sleep200() {
+        Thread.sleep(200)
     }
 
     @Test void defaultRun() {
         new Profiler().run {
-            atoz()
-            AtoZ()
+            sleep100()
+            sleep200()
         }.prettyPrint()
     }
 

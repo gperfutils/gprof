@@ -74,6 +74,10 @@ public class ProfileCallTree {
             return children;
         }
 
+        public boolean hasChildren() {
+            return children != null;
+        }
+
         public ProfileCallEntry getData() {
             return data;
         }

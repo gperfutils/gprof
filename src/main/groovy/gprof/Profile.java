@@ -44,7 +44,7 @@ public class Profile {
                     entries.add(methodEntry);
                 }
                 methodEntry.getCallEntries().add(callEntry);
-                ProfileTime theTime = callEntry.getEndTime().minus(callEntry.getStartTime());
+                ProfileTime theTime = callEntry.getTime();
                 if (methodEntry.getTime() == null) {
                     methodEntry.setTime(theTime);
                 } else {
@@ -56,17 +56,12 @@ public class Profile {
                 if (methodEntry.getMaxTime() == null || methodEntry.getMaxTime().compareTo(theTime) < 0) {
                     methodEntry.setMaxTime(theTime);
                 }
-                if (node.hasParent()) {
-                    ProfileCallEntry parent = node.getParent().getData();
-                    if (parent != null) {
-                        String parentKey = String.format("%s.%s", parent.getClassName(), parent.getMethodName());
-                        ProfileMethodEntry parentMethodEntry = methodEntryMap.get(parentKey);
-                        parentMethodEntry.setTime(parentMethodEntry.getTime().minus(theTime));
-                    }
-                }
                 time[0] = time[0].plus(theTime);
             }
         });
+        for (ProfileMethodEntry methodEntry : entries) {
+
+        }
         for (ProfileMethodEntry methodEntry : entries) {
             methodEntry.setPercent(methodEntry.getTime().milliseconds() / time[0].milliseconds() * 100);
             methodEntry.setTimePerCall(methodEntry.getTime().div(methodEntry.getCallEntries().size()));
