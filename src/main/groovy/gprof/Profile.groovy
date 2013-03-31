@@ -5,7 +5,7 @@ class Profile {
     static String TIME = "ms"
     static String PCT = "%"
     static String CALLS = "calls"
-    static String TIME_PER_CALL = "us/call"
+    static String TIME_PER_CALL = "ns/call"
     static String METHOD = "method"
     static String KLASS = "class"
     static String SP = "  "
@@ -13,10 +13,10 @@ class Profile {
     ProfileTime time = new ProfileTime(0L)
     List<ProfileEntry> entries = []
 
-    public Profile(List<ProfileCallEntry> callEntries) {
+    public Profile(ProfileTree<ProfileCallEntry> callTree) {
         Map<String, ProfileEntry> entryMap = [:]
-        for (int i = 0; i < callEntries.size(); i++) {
-            def callEntry = callEntries[i]
+        callTree.root.walk { node ->
+            def callEntry = node.data
             def key = sprintf("%s.%s", callEntry.className, callEntry.methodName);
             def entry = entryMap[key]
             if (entry == null) {
@@ -25,8 +25,18 @@ class Profile {
                 entries << entry
             }
             entry.callEntries << callEntry
-            entry.time += callEntry.time
-            time += callEntry.time
+            def theTime = callEntry.endTime - callEntry.startTime
+            entry.time += theTime
+            if (node.parent) {
+                ProfileCallEntry parent = node.parent.data
+                String parentId = sprintf("%s.%s", parent.className, parent.methodName);
+                ProfileEntry parentEntry = entryMap[parentId]
+                if (parentEntry != null) {
+                    def ot = parentEntry.time
+                    parentEntry.time -= theTime
+                }
+            }
+            time += theTime
         }
         entries.each { entry ->
             entry.timePerCall = entry.time / entry.callEntries.size()
@@ -42,7 +52,7 @@ class Profile {
             columnWidth.time = Math.max(columnWidth.time, sprintf("%.2f", entry.time.ms()).size())
             columnWidth.pct = Math.max(columnWidth.pct, sprintf("%.2f", entry.time.ns() / time.ns() * 100).size())
             columnWidth.calls = Math.max(columnWidth.calls, entry.callEntries.size().toString().size())
-            columnWidth.timePerCall = Math.max(columnWidth.timePerCall, sprintf("%.2f", entry.timePerCall.us()).size())
+            columnWidth.timePerCall = Math.max(columnWidth.timePerCall, sprintf("%d", entry.timePerCall.ns()).size())
             columnWidth.method = Math.max(columnWidth.method, entry.methodName.size())
             columnWidth.klass = Math.max(columnWidth.klass, entry.className.size())
         }
@@ -84,7 +94,7 @@ class Profile {
                 "%s" +
                 "%%%dd" +   // calls
                 "%s" +
-                "%%%d.2f" + // timePerCall
+                "%%%dd" + // timePerCall
                 "%s" +
                 "%%-%ds" +  // method
                 "%s" +
@@ -119,7 +129,7 @@ class Profile {
                     entry.time.ns() / time.ns() * 100,
                     entry.time.ms(),
                     entry.callEntries.size(),
-                    entry.timePerCall.us(),
+                    entry.timePerCall.ns(),
                     entry.methodName,
                     entry.className
             )

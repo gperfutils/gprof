@@ -16,11 +16,11 @@
 package gprof;
 
 public class ProfileTime implements Comparable<ProfileTime> {
-    private double ns;
-    public ProfileTime(double ns) {
+    private long ns;
+    public ProfileTime(long ns) {
         this.ns = ns;
     }
-    public double ns() {
+    public long ns() {
         return ns;
     }
     public double us() {
@@ -35,6 +35,9 @@ public class ProfileTime implements Comparable<ProfileTime> {
     public ProfileTime plus(ProfileTime other) {
         return new ProfileTime(ns() + other.ns());
     }
+    public ProfileTime minus(ProfileTime other) {
+        return new ProfileTime(ns() - other.ns());
+    }
     public ProfileTime div(ProfileTime other) {
         return new ProfileTime(ns() / other.ns());
     }
@@ -45,6 +48,13 @@ public class ProfileTime implements Comparable<ProfileTime> {
         return new ProfileTime(ns() * i);
     }
     public int compareTo(ProfileTime another) {
-        return ((Double) ns()).compareTo(another.ns());
+        return ((Long) ns()).compareTo(another.ns());
+    }
+
+    @Override
+    public String toString() {
+        return "ProfileTime{" +
+                "ns=" + ns +
+                '}';
     }
 }
