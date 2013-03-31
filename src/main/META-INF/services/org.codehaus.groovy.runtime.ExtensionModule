@@ -1,0 +1,3 @@
+moduleName = GProfExtension
+moduleVersion = 1.0
+staticExtensionClasses = gprof.ProfileStaticExtension
