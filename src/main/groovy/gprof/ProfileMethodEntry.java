@@ -23,6 +23,7 @@ public class ProfileMethodEntry {
     private String className;
     private String methodName;
     private List<ProfileCallEntry> callEntries;
+    private double percent;
     private ProfileTime time;
     private ProfileTime minTime;
     private ProfileTime maxTime;
@@ -76,5 +77,13 @@ public class ProfileMethodEntry {
 
     public void setTimePerCall(ProfileTime timePerCall) {
         this.timePerCall = timePerCall;
+    }
+
+    public double getPercent() {
+        return percent;
+    }
+
+    public void setPercent(double percent) {
+        this.percent = percent;
     }
 }

@@ -22,48 +22,10 @@ public class ProfileFlatPrinter {
 
     private static String SP = "  ";
 
-    private ProfileTime time = new ProfileTime(0L);
     private List<ProfileMethodEntry> methodEntries = new ArrayList();
 
-    public ProfileFlatPrinter(ProfileCallTree tree) {
-        final Map<String, ProfileMethodEntry> methodEntryMap = new HashMap();
-        tree.visit(new ProfileCallTree.NodeVisitor() {
-            public void visit(ProfileCallTree.Node node) {
-                ProfileCallEntry callEntry = node.getData();
-                String key = String.format("%s.%s", callEntry.getClassName(), callEntry.getMethodName());
-                ProfileMethodEntry methodEntry = methodEntryMap.get(key);
-                if (methodEntry == null) {
-                    methodEntry = new ProfileMethodEntry(callEntry.getClassName(), callEntry.getMethodName());
-                    methodEntryMap.put(key, methodEntry);
-                    methodEntries.add(methodEntry);
-                }
-                methodEntry.getCallEntries().add(callEntry);
-                ProfileTime theTime = callEntry.getEndTime().minus(callEntry.getStartTime());
-                if (methodEntry.getTime() == null) {
-                   methodEntry.setTime(theTime);
-                } else {
-                    methodEntry.setTime(methodEntry.getTime().plus(theTime));
-                }
-                if (methodEntry.getMinTime() == null || methodEntry.getMinTime().compareTo(theTime) > 0) {
-                    methodEntry.setMinTime(theTime);
-                }
-                if (methodEntry.getMaxTime() == null || methodEntry.getMaxTime().compareTo(theTime) < 0) {
-                    methodEntry.setMaxTime(theTime);
-                }
-                if (node.hasParent()) {
-                    ProfileCallEntry parent = node.getParent().getData();
-                    if (parent != null) {
-                        String parentKey = String.format("%s.%s", parent.getClassName(), parent.getMethodName());
-                        ProfileMethodEntry parentMethodEntry = methodEntryMap.get(parentKey);
-                        parentMethodEntry.setTime(parentMethodEntry.getTime().minus(theTime));
-                    }
-                }
-                time = time.plus(theTime);
-            }
-        });
-        for (ProfileMethodEntry methodEntry : methodEntries) {
-            methodEntry.setTimePerCall(methodEntry.getTime().div(methodEntry.getCallEntries().size()));
-        }
+    public ProfileFlatPrinter(List<ProfileMethodEntry> methodEntries) {
+        this.methodEntries = methodEntries;
     }
 
     public void print(PrintWriter writer, Comparator<ProfileMethodEntry> comparator) {
@@ -72,7 +34,7 @@ public class ProfileFlatPrinter {
         List<Map<COLUMN, String>> rows = new ArrayList(methodEntries.size());
         for (ProfileMethodEntry methodEntry : methodEntries) {
             Map<COLUMN, String> row = new HashMap();
-            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", methodEntry.getTime().milliseconds() / time.milliseconds() * 100));
+            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", methodEntry.getPercent()));
             row.put(COLUMN.TIME_TOTAL, String.format("%.2f", methodEntry.getTime().milliseconds()));
             row.put(COLUMN.CALLS, String.format("%d", methodEntry.getCallEntries().size()));
             row.put(COLUMN.TIME_MIN, String.format("%.2f", methodEntry.getMinTime().milliseconds()));
