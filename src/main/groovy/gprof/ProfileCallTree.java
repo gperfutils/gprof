@@ -28,6 +28,10 @@ public class ProfileCallTree {
         this.root = new Node(null);
     }
 
+    public void visit(NodeVisitor visitor) {
+        root.visit(visitor);
+    }
+
     public Node getRoot() {
         return root;
     }
@@ -55,6 +59,10 @@ public class ProfileCallTree {
             return parent;
         }
 
+        public boolean hasParent() {
+            return parent != null;
+        }
+
         public void addChild(Node child) {
             getChildren().add(child);
         }
@@ -80,12 +88,18 @@ public class ProfileCallTree {
             return sb.toString();
         }
 
-        public void walk(Closure c) {
+        public void visit(NodeVisitor visitor) {
             for (Node child : getChildren()) {
-                c.call(child);
-                child.walk(c);
+                visitor.visit(child);
+                child.visit(visitor);
             }
         }
+    }
+
+    public static abstract class NodeVisitor {
+
+        public abstract void visit(Node node);
+
     }
 
 }

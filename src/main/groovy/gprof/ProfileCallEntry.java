@@ -43,6 +43,14 @@ public class ProfileCallEntry {
         return methodName;
     }
 
+    public ProfileTime getStartTime() {
+        return startTime;
+    }
+
+    public ProfileTime getEndTime() {
+        return endTime;
+    }
+
     @Override
     public String toString() {
         return "ProfileCallEntry{" +
