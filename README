@@ -1,1 +1,14 @@
-GProf
+WHAT IS GPROF?
+--------------
+
+GProf, the Groovy profiler allows you to determine which parts of a program
+are taking most of the execution time like GNU gprof for C, C++.
+
+
+COPYLIGHT
+---------
+
+GProf is Copyright (c) 2013, Masato Nagai <masato.nagai@aol.com> and licensed
+under the term of the Apache License, Version 2.0. See the file LICENSE for
+the full license.
+
