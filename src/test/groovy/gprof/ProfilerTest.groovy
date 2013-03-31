@@ -1,6 +1,9 @@
 package gprof
 
 import org.junit.Test
+
+import java.util.concurrent.Callable
+
 import static org.junit.Assert.*
 
 class ProfilerTest {
@@ -13,7 +16,7 @@ class ProfilerTest {
     }
 
     @Test void defaultRun() {
-        new Profiler().run {
+        profile {
             sleep100()
             sleep200()
         }.prettyPrint()
