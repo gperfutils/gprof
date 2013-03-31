@@ -16,45 +16,57 @@
 package gprof;
 
 public class ProfileTime implements Comparable<ProfileTime> {
+
     private long ns;
+
     public ProfileTime(long ns) {
         this.ns = ns;
     }
-    public long ns() {
+
+    public long nanoseconds() {
         return ns;
     }
-    public double us() {
+
+    public double microseconds() {
         return ns / 1000;
     }
-    public double ms() {
-        return us() / 1000;
+
+    public double milliseconds() {
+        return microseconds() / 1000;
     }
-    public double s() {
-        return ms() / 1000;
+
+    public double seconds() {
+        return milliseconds() / 1000;
     }
+
     public ProfileTime plus(ProfileTime other) {
-        return new ProfileTime(ns() + other.ns());
+        return new ProfileTime(nanoseconds() + other.nanoseconds());
     }
+
     public ProfileTime minus(ProfileTime other) {
-        return new ProfileTime(ns() - other.ns());
+        return new ProfileTime(nanoseconds() - other.nanoseconds());
     }
+
     public ProfileTime div(ProfileTime other) {
-        return new ProfileTime(ns() / other.ns());
+        return new ProfileTime(nanoseconds() / other.nanoseconds());
     }
+
     public ProfileTime div(int i) {
-        return new ProfileTime(ns() / i);
+        return new ProfileTime(nanoseconds() / i);
     }
+
     public ProfileTime multiply(int i) {
-        return new ProfileTime(ns() * i);
+        return new ProfileTime(nanoseconds() * i);
     }
+
     public int compareTo(ProfileTime another) {
-        return ((Long) ns()).compareTo(another.ns());
+        return ((Long) nanoseconds()).compareTo(another.nanoseconds());
     }
 
     @Override
     public String toString() {
         return "ProfileTime{" +
-                "ns=" + ns +
+                "nanoseconds=" + ns +
                 '}';
     }
 }

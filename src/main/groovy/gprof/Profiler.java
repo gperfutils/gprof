@@ -1,81 +1,53 @@
+/*
+ * Copyright 2013 Masato Nagai
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package gprof;
 
-import groovy.lang.*;
+import groovy.lang.GroovySystem;
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassImpl;
+import groovy.lang.MetaClassRegistry;
 import org.codehaus.groovy.reflection.ClassInfo;
 
 import java.beans.IntrospectionException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
-
-    private static class CallInterceptor implements Interceptor {
-        private List<Class> includes;
-        private ProfileTree<ProfileCallEntry> callTree;
-        private ProfileTree.Node<ProfileCallEntry> currentCall;
-        private Stack<Long> startTimeStack = new Stack();
-
-        CallInterceptor() {
-            currentCall = new ProfileTree.Node(new ProfileCallEntry("", ""));
-            callTree = new ProfileTree(currentCall);
-        }
-
-        @Override
-        public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-            startTimeStack.push(System.nanoTime());
-            String className;
-            if (object.getClass() == Class.class && methodName.equals("ctor")) {
-                className = ((Class) object).getName();
-            } else {
-                className = object.getClass().getName();
-            }
-            ProfileCallEntry callEntry = new ProfileCallEntry(className, methodName);
-            callEntry.setStartTime(new ProfileTime(System.nanoTime()));
-            ProfileTree.Node<ProfileCallEntry> theCall = new ProfileTree.Node(callEntry);
-            currentCall.addChild(theCall);
-            theCall.setParent(currentCall);
-            currentCall = theCall;
-            return null;
-        }
-
-        @Override
-        public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-            currentCall.getData().setEndTime(new ProfileTime(System.nanoTime()));
-            currentCall = currentCall.getParent();
-            return result;
-        }
-
-        @Override
-        public boolean doInvoke() {
-            return true;
-        }
-
-        public ProfileTree getCallTree() {
-            return callTree;
-        }
-    }
 
     private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle = null;
     private List<MetaClass> originalMetaClasses = new ArrayList();
-    private CallInterceptor callInterceptor = new CallInterceptor();
+    private ProfileInterceptor interceptor = new ProfileInterceptor();
 
-    public Profile run(Closure task) {
-        return run(Collections.emptyMap(), task);
-    }
-
-    public Profile run(Map options, Closure task) {
+    public Profile run(Callable profiled) {
         start();
-        task.call();
+        try {
+            profiled.call();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         end();
-        return new Profile(callInterceptor.getCallTree());
+        return new Profile(interceptor.getTree());
     }
 
     private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
-            // MetaClass metaClass = registry.getMetaClass(theClass);
-            // registry.setMetaClass(theClass, new ProfileMetaClass(registry, theClass));
             originalMetaClasses.add(registry.getMetaClass(theClass));
             registry.removeMetaClass(theClass);
         }
@@ -101,7 +73,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
             try {
                 ProfileMetaClass proxyMetaClass =
                         new ProfileMetaClass(registry, theClass, new MetaClassImpl(registry, theClass));
-                proxyMetaClass.setInterceptor(callInterceptor);
+                proxyMetaClass.setInterceptor(interceptor);
                 proxyMetaClasses.add(proxyMetaClass);
                 return proxyMetaClass;
             } catch (IntrospectionException e) {
@@ -110,6 +82,5 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
         return super.createNormalMetaClass(theClass, registry);
     }
-
 
 }

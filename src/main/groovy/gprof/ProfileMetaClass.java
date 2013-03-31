@@ -1,4 +1,4 @@
-package gprof;/*
+/*
  * Copyright 2013 Masato Nagai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +13,7 @@ package gprof;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package gprof;
 
 import groovy.lang.MetaClass;
 import groovy.lang.MetaClassRegistry;
@@ -26,4 +27,5 @@ public class ProfileMetaClass extends ProxyMetaClass {
             throws IntrospectionException {
         super(registry, theClass, adaptee);
     }
+
 }
