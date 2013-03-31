@@ -22,8 +22,11 @@ import groovy.lang.MetaClassRegistry;
 import org.codehaus.groovy.reflection.ClassInfo;
 
 import java.beans.IntrospectionException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.Callable;
 
 public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
@@ -46,10 +49,28 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+        /*
+        I have no idea but ClassInfo.getAllClassInfo() often returns an empty list
+        when its size isn't 0. It doesn't occur when running with agentlib and hard to debug...
+
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
             originalMetaClasses.add(registry.getMetaClass(theClass));
             registry.removeMetaClass(theClass);
+        }
+        */
+        // hack
+        try {
+            Field classesField = ClassLoader.class.getDeclaredField("classes");
+            classesField.setAccessible(true);
+            Vector<Class> classes = (Vector<Class>) classesField.get(getClass().getClassLoader());
+            for (int i = 0, n = classes.size(); i < n; i++) {
+                Class theClass = classes.get(i);
+                originalMetaClasses.add(registry.getMetaClass(theClass));
+                registry.removeMetaClass(theClass);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
         registry.setMetaClassCreationHandle(this);
