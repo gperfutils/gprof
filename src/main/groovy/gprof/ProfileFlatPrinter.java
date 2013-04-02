@@ -50,7 +50,7 @@ public class ProfileFlatPrinter {
         }
         String rowFormat = rowFormatBuff.append("%n").toString();
         for (Map<COLUMN, String> row : rows) {
-            String[] rowValues = new String[columnNum];
+            Object[] rowValues = new String[columnNum];
             for (int i = 0; i < columnNum; i++) {
                 rowValues[i] = row.get(columns[i]);
             }
@@ -70,7 +70,7 @@ public class ProfileFlatPrinter {
             headerFormatBuff.append(String.format("%%-%ds", columnSize));
         }
         String headerFormat = headerFormatBuff.append("%n").toString();
-        String[] headerValues = new String[columnNum];
+        Object[] headerValues = new String[columnNum];
         for (int i = 0; i < columnNum; i++) {
             headerValues[i] = columns[i].name;
         }
