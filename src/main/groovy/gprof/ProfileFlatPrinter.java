@@ -30,7 +30,67 @@ public class ProfileFlatPrinter {
 
     public void print(PrintWriter writer, Comparator<ProfileMethodEntry> comparator) {
         Collections.sort(methodEntries, comparator);
+        List<Map<COLUMN, String>> rows = createRowValueList();
+        Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
+        writeHeader(writer, columnSizeMap);
+        writeRows(writer, rows, columnSizeMap);
+        writer.flush();
+    }
 
+    private void writeRows(PrintWriter writer, List<Map<COLUMN, String>> rows, Map<COLUMN, Integer> columnSizeMap) {
+        COLUMN[] columns = COLUMN.values();
+        int columnNum = columns.length;
+        StringBuilder rowFormatBuff = new StringBuilder();
+        for (int i = 0; i < columnNum; i++) {
+            if (i > 0) {
+                rowFormatBuff.append(SP);
+            }
+            int columnSize = columnSizeMap.get(columns[i]);
+            rowFormatBuff.append(String.format(columns[i].format, columnSize));
+        }
+        String rowFormat = rowFormatBuff.append("%n").toString();
+        for (Map<COLUMN, String> row : rows) {
+            String[] rowValues = new String[columnNum];
+            for (int i = 0; i < columnNum; i++) {
+                rowValues[i] = row.get(columns[i]);
+            }
+            writer.printf(rowFormat, rowValues);
+        }
+    }
+
+    private void writeHeader(PrintWriter writer, Map<COLUMN, Integer> columnSizeMap) {
+        COLUMN[] columns = COLUMN.values();
+        int columnNum = columns.length;
+        StringBuilder headerFormatBuff = new StringBuilder();
+        for (int i = 0; i < columnNum; i++) {
+            if (i > 0) {
+                headerFormatBuff.append(SP);
+            }
+            int columnSize = columnSizeMap.get(columns[i]);
+            headerFormatBuff.append(String.format("%%-%ds", columnSize));
+        }
+        String headerFormat = headerFormatBuff.append("%n").toString();
+        String[] headerValues = new String[columnNum];
+        for (int i = 0; i < columnNum; i++) {
+            headerValues[i] = columns[i].name;
+        }
+        writer.printf(headerFormat, headerValues);
+    }
+
+    private Map<COLUMN, Integer> calculateColumnSize(List<Map<COLUMN, String>> rows) {
+        Map<COLUMN, Integer> colSizeMap = new HashMap();
+        for (COLUMN col : COLUMN.values()) {
+            colSizeMap.put(col, col.name.length());
+        }
+        for (Map<COLUMN, String> row : rows) {
+            for (COLUMN col : COLUMN.values()) {
+                colSizeMap.put(col, Math.max(colSizeMap.get(col), row.get(col).length()));
+            }
+        }
+        return colSizeMap;
+    }
+
+    private List<Map<COLUMN, String>> createRowValueList() {
         List<Map<COLUMN, String>> rows = new ArrayList(methodEntries.size());
         for (ProfileMethodEntry methodEntry : methodEntries) {
             Map<COLUMN, String> row = new HashMap();
@@ -44,78 +104,26 @@ public class ProfileFlatPrinter {
             row.put(COLUMN.CLASS_NAME, methodEntry.getClassName());
             rows.add(row);
         }
-
-        Map<COLUMN, Integer> colSizeMap = new HashMap();
-        for (COLUMN col : COLUMN.values()) {
-            colSizeMap.put(col, col.name.length());
-        }
-        for (Map<COLUMN, String> row : rows) {
-            for (COLUMN col : COLUMN.values()) {
-                colSizeMap.put(col, Math.max(colSizeMap.get(col), row.get(col).length()));
-            }
-        }
-
-        String headerFormat =  String.format(
-                "%%-%ds" + // time percent
-                "%s" + "%%-%ds" + // time total
-                "%s" + "%%-%ds" + // calls
-                "%s" + "%%-%ds" + // time min
-                "%s" + "%%-%ds" + // time max
-                "%s" + "%%-%ds" + // time avg
-                "%s" + "%%-%ds" + // method name
-                "%s" + "%%-%ds" + // class name
-                "%n",
-                colSizeMap.get(COLUMN.TIME_PERCENT), SP,
-                colSizeMap.get(COLUMN.TIME_TOTAL), SP,
-                colSizeMap.get(COLUMN.CALLS), SP,
-                colSizeMap.get(COLUMN.TIME_MIN), SP,
-                colSizeMap.get(COLUMN.TIME_MAX), SP,
-                colSizeMap.get(COLUMN.TIME_AVG), SP,
-                colSizeMap.get(COLUMN.METHOD_NAME), SP,
-                colSizeMap.get(COLUMN.CLASS_NAME));
-        writer.printf(headerFormat,
-                COLUMN.TIME_PERCENT.name, COLUMN.TIME_TOTAL.name, COLUMN.CALLS.name,
-                COLUMN.TIME_MIN.name, COLUMN.TIME_MAX.name, COLUMN.TIME_AVG.name,
-                COLUMN.METHOD_NAME.name, COLUMN.CLASS_NAME.name);
-
-        String rowFormat = String.format(
-                "%%%ds" + // time percent
-                "%s" + "%%%ds" + // time total
-                "%s" + "%%%ds" + // calls
-                "%s" + "%%%ds" + // time max
-                "%s" + "%%%ds" + // time min
-                "%s" + "%%%ds" + // time avg
-                "%s" + "%%-%ds" + // method name
-                "%s" + "%%-%ds" + // class name
-                "%n",
-                colSizeMap.get(COLUMN.TIME_PERCENT), SP,
-                colSizeMap.get(COLUMN.TIME_TOTAL), SP,
-                colSizeMap.get(COLUMN.CALLS), SP,
-                colSizeMap.get(COLUMN.TIME_MIN), SP,
-                colSizeMap.get(COLUMN.TIME_MAX), SP,
-                colSizeMap.get(COLUMN.TIME_AVG), SP,
-                colSizeMap.get(COLUMN.METHOD_NAME), SP,
-                colSizeMap.get(COLUMN.CLASS_NAME));
-        for (Map<COLUMN, String> row : rows) {
-                writer.printf(rowFormat,
-                        row.get(COLUMN.TIME_PERCENT), row.get(COLUMN.TIME_TOTAL), row.get(COLUMN.CALLS),
-                        row.get(COLUMN.TIME_MIN), row.get(COLUMN.TIME_MAX), row.get(COLUMN.TIME_AVG),
-                        row.get(COLUMN.METHOD_NAME), row.get(COLUMN.CLASS_NAME));
-        }
-
-        writer.flush();
+        return rows;
     }
 
     public enum COLUMN {
 
-        TIME_PERCENT("%"), TIME_TOTAL("sum(ms)"), CALLS("calls"),
-        TIME_MAX("max(ms)"), TIME_MIN("min(ms)"), TIME_AVG("avg(ms)"),
-        METHOD_NAME("method"), CLASS_NAME("class");
+        TIME_PERCENT("%", "%%%ds"),
+        CALLS("calls", "%%%ds"),
+        TIME_TOTAL("total ms", "%%%ds"),
+        TIME_AVG("ms/call", "%%%ds"),
+        TIME_MIN("min ms", "%%%ds"),
+        TIME_MAX("max ms", "%%%ds"),
+        METHOD_NAME("method", "%%-%ds"),
+        CLASS_NAME("class", "%%-%ds");
 
         private String name;
+        private String format;
 
-        COLUMN(String name) {
+        COLUMN(String name, String format) {
             this.name = name;
+            this.format = format;
         }
     }
 
