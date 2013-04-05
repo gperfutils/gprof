@@ -1,7 +1,7 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.googlecode.gprof</groupId>
-  <artifactId>gbench</artifactId>
+  <artifactId>gprof</artifactId>
   <packaging>jar</packaging>
   <name>GProf</name>
   <version>@version@</version>

@@ -50,6 +50,7 @@
   </target>
 
   <target name="dist" description="Create everything needed for distribution.">
+    <antcall target="binary" />
     <antcall target="source" />
     <antcall target="javadoc" />
   </target>
@@ -63,7 +64,7 @@
       <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version.major}.${groovy.version.minor}" />
     </artifact:dependencies>
     <taskdef name="groovydoc" classname="org.codehaus.groovy.ant.Groovydoc" classpathref="groovydoc.classpath" />
-    <groovydoc destdir="${build.dir}/doc" sourcepath="${buld.pp.main.dir}" packagenames="**.*" use="true" private="false">
+    <groovydoc destdir="${build.dir}/doc" sourcepath="${src.main.dir}" packagenames="**.*" use="true" private="false">
       <link packages="java.,org.xml.,javax.,org.xml." href="http://download.oracle.com/javase/6/docs/api" />
       <link packages="groovy.,org.codehaus.groovy." href="http://groovy.codehaus.org/api" />
       <link packages="org.apache.tools.ant." href="http://evgeny-goldin.org/javadoc/ant/api" />
