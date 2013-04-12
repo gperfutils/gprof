@@ -60,9 +60,6 @@ public class Profile {
             }
         });
         for (ProfileMethodEntry methodEntry : entries) {
-
-        }
-        for (ProfileMethodEntry methodEntry : entries) {
             methodEntry.setPercent(methodEntry.getTime().milliseconds() / time[0].milliseconds() * 100);
             methodEntry.setTimePerCall(methodEntry.getTime().div(methodEntry.getCallEntries().size()));
         }

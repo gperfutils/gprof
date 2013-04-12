@@ -2,6 +2,7 @@ package gprof;
 
 import groovy.lang.Interceptor;
 
+import java.util.List;
 import java.util.Stack;
 
 public class ProfileInterceptor implements Interceptor {
@@ -9,6 +10,7 @@ public class ProfileInterceptor implements Interceptor {
     private ProfileCallTree tree;
     private Stack<ProfileCallTree.Node> nodeStack;
     private Stack<Long> timeStack;
+    private boolean ignoring;
 
     public ProfileInterceptor() {
         tree = new ProfileCallTree();
@@ -17,16 +19,33 @@ public class ProfileInterceptor implements Interceptor {
         timeStack = new Stack();
     }
 
+    private boolean isCallToBeExcluded(Object object, String methodName) {
+        return isCallToBeExcluded(classNameOf(object), methodName);
+    }
 
-    @Override
-    public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
+    private boolean isCallToBeExcluded(String className, String methodName) {
+        return className.equals("groovy.grape.Grape") && methodName.equals("grab");
+    }
+
+    private String classNameOf(Object object) {
         String className;
         if (object.getClass() == Class.class /* static methods */) {
             className = ((Class) object).getName();
         } else {
             className = object.getClass().getName();
         }
-        ProfileCallTree.Node node = new ProfileCallTree.Node(new ProfileCallEntry(className, methodName));
+        return className;
+    }
+
+    @Override
+    public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
+        if (ignoring) {
+            // Skip while processing a call to be excluded.
+            return null;
+        }
+        ignoring = isCallToBeExcluded(object, methodName);
+
+        ProfileCallTree.Node node = new ProfileCallTree.Node(new ProfileCallEntry(classNameOf(object), methodName));
         ProfileCallTree.Node parentNode = nodeStack.peek();
         parentNode.addChild(node);
         node.setParent(parentNode);
@@ -38,14 +57,27 @@ public class ProfileInterceptor implements Interceptor {
 
     @Override
     public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
+        if (ignoring && (ignoring = !isCallToBeExcluded(object, methodName))) {
+            // Skip while processing a call to be excluded.
+            return result;
+        }
         long time = System.nanoTime() - timeStack.pop();
         ProfileCallTree.Node node = nodeStack.pop();
         if (node.hasChildren()) {
             for (ProfileCallTree.Node child : node.getChildren()) {
-                time -= child.getData().getTime().nanoseconds();
+                ProfileCallEntry callEntry = child.getData();
+                time -= callEntry.getTime().nanoseconds();
             }
         }
         node.getData().setTime(new ProfileTime(time));
+        List<ProfileCallTree.Node> childNodes = node.getChildren();
+        for (int i = childNodes.size() - 1; i >= 0; i--) {
+            ProfileCallTree.Node child = childNodes.get(i);
+            ProfileCallEntry childCall = child.getData();
+            if (isCallToBeExcluded(childCall.getClassName(), childCall.getMethodName())) {
+                childNodes.remove(i);
+            }
+        }
         return result;
     }
 
