@@ -10,9 +10,28 @@ import java.util.concurrent.ConcurrentMap;
 public class ProfileInterceptor implements Interceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
+    private ProfileCallTree tree;
 
     public ProfileInterceptor() {
         interceptors = new ConcurrentHashMap<Thread, LocalInterceptor>();
+    }
+
+    protected boolean isCallToBeExcluded(Object object, String methodName) {
+        return isCallToBeExcluded(classNameOf(object), methodName);
+    }
+
+    protected boolean isCallToBeExcluded(String className, String methodName) {
+        return className.equals("groovy.grape.Grape") && methodName.equals("grab");
+    }
+
+    protected String classNameOf(Object object) {
+        String className;
+        if (object.getClass() == Class.class /* static methods */) {
+            className = ((Class) object).getName();
+        } else {
+            className = object.getClass().getName();
+        }
+        return className;
     }
 
     private LocalInterceptor getLocalInterceptor() {
@@ -40,8 +59,15 @@ public class ProfileInterceptor implements Interceptor {
     }
 
     public ProfileCallTree getTree() {
+        if (tree == null) {
+            tree = makeTree();
+        }
+        return tree;
+    }
+
+    ProfileCallTree makeTree() {
+        // Wait for all the child threads to die.
         Thread profThread = Thread.currentThread();
-        ProfileCallTree tree = new ProfileCallTree();
         for (Thread thread : interceptors.keySet()) {
             if (!thread.equals(profThread)) {
                 try {
@@ -51,6 +77,7 @@ public class ProfileInterceptor implements Interceptor {
                 }
             }
         }
+        ProfileCallTree tree = new ProfileCallTree();
         for (LocalInterceptor interceptor : interceptors.values()) {
             ProfileCallTree theTree = interceptor.getTree();
             tree.getRoot().getChildren().addAll(theTree.getRoot().getChildren());
@@ -58,17 +85,18 @@ public class ProfileInterceptor implements Interceptor {
         return tree;
     }
 
-    private static class LocalInterceptor implements Interceptor {
+    static class LocalInterceptor implements Interceptor {
 
         private ProfileCallTree tree;
+        private ProfileCallTree tmpTree;
         private Stack<ProfileCallTree.Node> nodeStack;
         private Stack<Long> timeStack;
         private boolean ignoring;
 
         public LocalInterceptor() {
-            tree = new ProfileCallTree();
+            tmpTree = new ProfileCallTree();
             nodeStack = new Stack();
-            nodeStack.push(tree.getRoot());
+            nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
         }
 
@@ -116,21 +144,7 @@ public class ProfileInterceptor implements Interceptor {
             }
             long time = System.nanoTime() - timeStack.pop();
             ProfileCallTree.Node node = nodeStack.pop();
-            if (node.hasChildren()) {
-                for (ProfileCallTree.Node child : node.getChildren()) {
-                    ProfileCallEntry callEntry = child.getData();
-                    time -= callEntry.getTime().nanoseconds();
-                }
-            }
             node.getData().setTime(new ProfileTime(time));
-            List<ProfileCallTree.Node> childNodes = node.getChildren();
-            for (int i = childNodes.size() - 1; i >= 0; i--) {
-                ProfileCallTree.Node child = childNodes.get(i);
-                ProfileCallEntry childCall = child.getData();
-                if (isCallToBeExcluded(childCall.getClassName(), childCall.getMethodName())) {
-                    childNodes.remove(i);
-                }
-            }
             return result;
         }
 
@@ -140,6 +154,35 @@ public class ProfileInterceptor implements Interceptor {
         }
 
         public ProfileCallTree getTree() {
+            if (tree == null) {
+                tree = makeTree();
+            }
+            return tree;
+        }
+
+        ProfileCallTree makeTree() {
+            ProfileCallTree tree = tmpTree;
+            tree.visit(new ProfileCallTree.NodeVisitor() {
+                @Override
+                public void visit(ProfileCallTree.Node node) {
+                    long time = node.getData().getTime().nanoseconds();
+                    if (node.hasChildren()) {
+                        for (ProfileCallTree.Node child : node.getChildren()) {
+                            ProfileCallEntry callEntry = child.getData();
+                            time -= callEntry.getTime().nanoseconds();
+                        }
+                    }
+                    node.getData().setTime(new ProfileTime(time));
+                    List<ProfileCallTree.Node> childNodes = node.getChildren();
+                    for (int i = childNodes.size() - 1; i >= 0; i--) {
+                        ProfileCallTree.Node child = childNodes.get(i);
+                        ProfileCallEntry childCall = child.getData();
+                        if (isCallToBeExcluded(childCall.getClassName(), childCall.getMethodName())) {
+                            childNodes.remove(i);
+                        }
+                    }
+                }
+            });
             return tree;
         }
 
