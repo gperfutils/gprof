@@ -2,7 +2,6 @@ package gprof;
 
 import groovy.lang.Interceptor;
 
-import java.util.List;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -11,33 +10,18 @@ public class ProfileInterceptor implements Interceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
     private ProfileCallTree tree;
+    private ProfileMethodFilter filter;
 
-    public ProfileInterceptor() {
+    public ProfileInterceptor(ProfileMethodFilter filter) {
         interceptors = new ConcurrentHashMap<Thread, LocalInterceptor>();
-    }
-
-    protected boolean isCallToBeExcluded(Object object, String methodName) {
-        return isCallToBeExcluded(classNameOf(object), methodName);
-    }
-
-    protected boolean isCallToBeExcluded(String className, String methodName) {
-        return className.equals("groovy.grape.Grape") && methodName.equals("grab");
-    }
-
-    protected String classNameOf(Object object) {
-        String className;
-        if (object.getClass() == Class.class /* static methods */) {
-            className = ((Class) object).getName();
-        } else {
-            className = object.getClass().getName();
-        }
-        return className;
+        this.filter = filter;
+        filter.addExclude("groovy.grape.*");
     }
 
     private LocalInterceptor getLocalInterceptor() {
         LocalInterceptor theInterceptor = interceptors.get(Thread.currentThread());
         if (theInterceptor == null) {
-            theInterceptor = new LocalInterceptor();
+            theInterceptor = new LocalInterceptor(filter);
             interceptors.put(Thread.currentThread(), theInterceptor);
         }
         return theInterceptor;
@@ -92,20 +76,14 @@ public class ProfileInterceptor implements Interceptor {
         private Stack<ProfileCallTree.Node> nodeStack;
         private Stack<Long> timeStack;
         private boolean ignoring;
+        private ProfileMethodFilter filter;
 
-        public LocalInterceptor() {
+        public LocalInterceptor(ProfileMethodFilter filter) {
             tmpTree = new ProfileCallTree();
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
-        }
-
-        private boolean isCallToBeExcluded(Object object, String methodName) {
-            return isCallToBeExcluded(classNameOf(object), methodName);
-        }
-
-        private boolean isCallToBeExcluded(String className, String methodName) {
-            return className.equals("groovy.grape.Grape") && methodName.equals("grab");
+            this.filter = filter;
         }
 
         private String classNameOf(Object object) {
@@ -124,7 +102,7 @@ public class ProfileInterceptor implements Interceptor {
                 // Skip while processing a call to be excluded.
                 return null;
             }
-            ignoring = isCallToBeExcluded(object, methodName);
+            ignoring = !filter.accept(classNameOf(object), methodName);
 
             ProfileCallTree.Node node = new ProfileCallTree.Node(new ProfileCallEntry(classNameOf(object), methodName));
             ProfileCallTree.Node parentNode = nodeStack.peek();
@@ -138,7 +116,7 @@ public class ProfileInterceptor implements Interceptor {
 
         @Override
         public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-            if (ignoring && (ignoring = !isCallToBeExcluded(object, methodName))) {
+            if (ignoring && (ignoring = filter.accept(classNameOf(object), methodName))) {
                 // Skip while processing a call to be excluded.
                 return result;
             }
@@ -161,7 +139,7 @@ public class ProfileInterceptor implements Interceptor {
         }
 
         ProfileCallTree makeTree() {
-            ProfileCallTree tree = tmpTree;
+            final ProfileCallTree tree = tmpTree;
             tree.visit(new ProfileCallTree.NodeVisitor() {
                 @Override
                 public void visit(ProfileCallTree.Node node) {
@@ -173,13 +151,14 @@ public class ProfileInterceptor implements Interceptor {
                         }
                     }
                     node.getData().setTime(new ProfileTime(time));
-                    List<ProfileCallTree.Node> childNodes = node.getChildren();
-                    for (int i = childNodes.size() - 1; i >= 0; i--) {
-                        ProfileCallTree.Node child = childNodes.get(i);
-                        ProfileCallEntry childCall = child.getData();
-                        if (isCallToBeExcluded(childCall.getClassName(), childCall.getMethodName())) {
-                            childNodes.remove(i);
+                    ProfileCallEntry theCall = node.getData();
+                    if (!filter.accept(theCall.getClassName(), theCall.getMethodName())) {
+                        ProfileCallTree.Node parentNode = node.getParent();
+                        if (parentNode != tree.getRoot()) {
+                            ProfileCallEntry parentCall = parentNode.getData();
+                            parentCall.setTime(parentCall.getTime().minus(theCall.getTime()));
                         }
+                        parentNode.getChildren().remove(node);
                     }
                 }
             });

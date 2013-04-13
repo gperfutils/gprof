@@ -22,19 +22,37 @@ import groovy.lang.MetaClassRegistry;
 
 import java.beans.IntrospectionException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
+    private static Map defaultOptions;
+    static {
+        defaultOptions = new HashMap();
+        defaultOptions.put("includes", Collections.emptyList());
+        // I believe grabbing phase must be excluded. Is there anyone wants to profile it?
+        defaultOptions.put("excludes", Arrays.asList("groovy.grape.*"));
+    }
+
     private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
-    private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle = null;
+    private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private List<MetaClass> originalMetaClasses = new ArrayList();
-    private ProfileInterceptor interceptor = new ProfileInterceptor();
+    private ProfileInterceptor interceptor;
 
     public Profile run(Callable profiled) {
+        return run(Collections.<String, Object>emptyMap(), profiled);
+    }
+
+    public Profile run(Map<String, Object> options, Callable profiled) {
+        Map<String, Object> opts = new HashMap(defaultOptions);
+        opts.putAll(options);
+
+        ProfileMethodFilter filter = new ProfileMethodFilter();
+        filter.addIncludes((List) opts.get("includes"));
+        filter.addExcludes((List) opts.get("excludes"));
+        this.interceptor = new ProfileInterceptor(filter);
+
         start();
         try {
             profiled.call();

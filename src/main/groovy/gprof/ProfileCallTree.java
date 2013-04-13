@@ -93,7 +93,7 @@ public class ProfileCallTree {
         }
 
         public void visit(NodeVisitor visitor) {
-            for (Node child : getChildren()) {
+            for (Node child : new ArrayList<Node>(getChildren())) {
                 visitor.visit(child);
                 child.visit(visitor);
             }

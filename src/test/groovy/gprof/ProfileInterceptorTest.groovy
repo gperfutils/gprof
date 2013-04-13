@@ -20,12 +20,48 @@ import org.junit.Test
 
 class ProfileInterceptorTest {
 
+    @Test void "excludes or includes calls"() {
+        def filter = new ProfileMethodFilter()
+        filter.addIncludes([ "java.lang.*", "java.util.*" ])
+        filter.addExcludes([ "java.lang.String.*", "java.util.List.*" ])
+        def interceptor = new ProfileInterceptor(filter)
+
+        def excludes = []
+        def includes = []
+
+        String s = new String("a")
+        interceptor.beforeInvoke(s, "ctor", null)
+        interceptor.afterInvoke(s, "ctor", null, null)
+        excludes << "java.lang.String.ctor"
+        Integer i = new Integer(0)
+        interceptor.beforeInvoke(i, "ctor", null)
+        interceptor.afterInvoke(i, "ctor", null, null)
+        includes << "java.lang.Integer.ctor"
+        List l = new ArrayList();
+        interceptor.beforeInvoke(l, "ctor", null)
+        interceptor.afterInvoke(l, "ctor", null, null)
+        excludes << "java.util.List.ctor"
+        ArrayList arrayList = new ArrayList();
+        interceptor.beforeInvoke(arrayList, "ctor", null)
+        interceptor.afterInvoke(arrayList, "ctor", null, null)
+        includes << "java.util.ArrayList.ctor"
+
+        interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
+            void visit(ProfileCallTree.Node node) {
+                def name = node.data.className + "." + node.data.methodName
+                assert includes.contains(name)
+                assert !excludes.contains(name)
+            }
+        })
+
+    }
+
     @Test void "parent calls does not contain their child calls"() {
         def depth0 = { Thread.sleep 100 }
         def depth1 = { Thread.sleep 200 }
         def depth2 = { Thread.sleep 300 }
 
-        def interceptor = new ProfileInterceptor.LocalInterceptor();
+        def interceptor = new ProfileInterceptor(new ProfileMethodFilter());
         interceptor.beforeInvoke(depth0, "call", null)
         depth0()
         interceptor.beforeInvoke(depth1, "call", null)
