@@ -1,12 +1,12 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.googlecode.gprof</groupId>
+  <groupId>org.gperfutils</groupId>
   <artifactId>gprof</artifactId>
   <packaging>jar</packaging>
   <name>GProf</name>
   <version>@version@</version>
-  <description>GProf is a profiling module for Groovy</description>
-  <url>http://code.google.com/p/gprof</url>
+  <description>GProf, profiling module for Groovy</description>
+  <url>https://github.com/gperfutils/gprof</url>
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
@@ -20,8 +20,8 @@
     <version>7</version>
   </parent>
   <scm>
-    <connection>scm:git:https://code.google.com/p/gprof/</connection>
-    <developerConnection>scm:git:https://code.google.com/p/gprof/</developerConnection>
-    <url>https://code.google.com/p/gprof/source/browse/</url>
+    <connection>scm:git:https://github.com/gperfutils/gprof.git</connection>
+    <developerConnection>scm:https://github.com/gperfutils/gprof.git</developerConnection>
+    <url>https://github.com/gperfutils/gprof</url>
   </scm>
 </project>
