@@ -71,6 +71,8 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
+        registry.setMetaClassCreationHandle(this);
         /*
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
