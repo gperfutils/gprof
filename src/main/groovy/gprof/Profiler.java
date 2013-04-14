@@ -23,20 +23,42 @@ import org.codehaus.groovy.reflection.ClassInfo;
 
 import java.beans.IntrospectionException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
+    private static Map defaultOptions;
+    static {
+        defaultOptions = new HashMap();
+        defaultOptions.put("includeMethods", Collections.emptyList());
+        // I believe grabbing phase must be excluded. Is there anyone wants to profile it?
+        defaultOptions.put("excludeMethods", Arrays.asList("groovy.grape.*"));
+        defaultOptions.put("includeThreads", Collections.emptyList());
+        defaultOptions.put("excludeThreads", Collections.emptyList());
+    }
+
     private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
-    private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle = null;
+    private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private List<MetaClass> originalMetaClasses = new ArrayList();
-    private ProfileInterceptor interceptor = new ProfileInterceptor();
+    private ProfileInterceptor interceptor;
 
     public Profile run(Callable profiled) {
+        return run(Collections.<String, Object>emptyMap(), profiled);
+    }
+
+    public Profile run(Map<String, Object> options, Callable profiled) {
+        Map<String, Object> opts = new HashMap(defaultOptions);
+        opts.putAll(options);
+
+        ProfileMethodFilter methodFilter = new ProfileMethodFilter();
+        methodFilter.addIncludes((List) opts.get("includeMethods"));
+        methodFilter.addExcludes((List) opts.get("excludeMethods"));
+        ProfileThreadFilter threadFilter = new ProfileThreadFilter();
+        threadFilter.addIncludes((List) opts.get("includeThreads"));
+        threadFilter.addExcludes((List) opts.get("excludeThreads"));
+        this.interceptor = new ProfileInterceptor(methodFilter, threadFilter);
+
         start();
         try {
             profiled.call();
@@ -49,31 +71,28 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
+        registry.setMetaClassCreationHandle(this);
         /*
-        I have no idea but ClassInfo.getAllClassInfo() often returns an empty list
-        when its size isn't 0. It doesn't occur when running with agentlib and hard to debug...
-
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
             originalMetaClasses.add(registry.getMetaClass(theClass));
             registry.removeMetaClass(theClass);
         }
         */
-        // hack
+        // This is a hack.
         try {
-            Field classesField = ClassLoader.class.getDeclaredField("classes");
-            classesField.setAccessible(true);
-            Vector<Class> classes = (Vector<Class>) classesField.get(getClass().getClassLoader());
-            for (int i = 0, n = classes.size(); i < n; i++) {
-                Class theClass = classes.get(i);
+            Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
+            classSetField.setAccessible(true);
+            ClassInfo.ClassInfoSet classSet = (ClassInfo.ClassInfoSet) classSetField.get(ClassInfo.class);
+            for (ClassInfo classInfo : (Collection<ClassInfo>) classSet.values()) {
+                Class theClass = classInfo.get();
                 originalMetaClasses.add(registry.getMetaClass(theClass));
                 registry.removeMetaClass(theClass);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
-        registry.setMetaClassCreationHandle(this);
     }
 
     private void end() {

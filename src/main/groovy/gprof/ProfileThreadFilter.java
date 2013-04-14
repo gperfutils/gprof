@@ -15,23 +15,10 @@
  */
 package gprof;
 
-import java.util.concurrent.Callable;
+public class ProfileThreadFilter extends ProfileFilter {
 
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Profile profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
-    }
-
-    static Profile profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
+    public boolean accept(Thread thread) {
+        return accept(thread.getName());
     }
 
 }

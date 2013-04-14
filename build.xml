@@ -1,7 +1,7 @@
 <project name="GProf" default="dist" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
   <property name="id" value="gprof" />
-  <property name="version" value="0.1.0" />
-  <property name="vendor" value="Nagai Masato" />
+  <property name="version" value="0.2.0" />
+  <property name="vendor" value="Masato Nagai" />
 
   <!-- directories -->
   <property name="src.dir" value="src" />
@@ -14,7 +14,7 @@
 
   <!-- default groovy -->
   <property name="groovy.version.major" value="2.1" />
-  <property name="groovy.version.minor" value="1" />
+  <property name="groovy.version.minor" value="3" />
 
   <!-- preprocessor (see: http://prebop.sourceforge.net/) -->
   <taskdef name="preprocess" classname="com.objfac.prebop.ant.PreprocessorTask">

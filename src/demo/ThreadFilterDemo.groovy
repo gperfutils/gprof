@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2013 Masato Nagai
  *
@@ -14,29 +15,11 @@
  * limitations under the License.
  */
 
-class YourApp {
-    void start() {
-        def foo = new Foo()
-        for (int i = 0; i < 100; i++) {
-            foo.doShortTask()
-        }
-        def bar = new Bar()
-        bar.doLongTask()
+profile(includeThreads: [ "thread-*" ], excludeThreads: [ "thread-2" ]) {
+    Thread.start("thread-1") {
+        new ArrayList()
     }
-}
-
-class Bar {
-    void doLongTask() {
-        for (int i = 0; i < 1000000; i++);
+    Thread.start("thread-2") {
+        new LinkedList()
     }
-}
-
-class Foo {
-    void doShortTask() {
-        for (int i = 0; i < 10000; i++);
-    }
-}
-
-profile {
-    new YourApp().start()
 }.prettyPrint()

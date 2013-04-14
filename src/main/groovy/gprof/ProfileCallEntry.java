@@ -42,6 +42,10 @@ public class ProfileCallEntry {
         return time;
     }
 
+    public String getName() {
+        return className + "." + methodName;
+    }
+
     @Override
     public String toString() {
         return "ProfileCallEntry{" +

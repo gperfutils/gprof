@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2013 Masato Nagai
  *
@@ -13,25 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
 
-import java.util.concurrent.Callable;
-
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Profile profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
-    }
-
-    static Profile profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
-    }
-
-}
+profile(includeMethods: ["java.util.*List.*"], excludeMethods: [ "*.ctor" ]) {
+    def list
+    list = new LinkedList()
+    list << String.valueOf(true)
+    list << String.valueOf(1)
+    list << String.valueOf('a')
+    list = new ArrayList(list)
+    list[0]
+    list[1]
+    list[2]
+}.prettyPrint()
