@@ -5,6 +5,14 @@ The Groovy profiler, GProf is a profiling module for Groovy. It allows you
 to determine which parts of a program are taking most of the execution time
 as the GNU profiler, gprof does for C and C++.
 
+INSTALL
+-------
+
+  @Grab('org.gperfutils:gprof:0.2.0')
+
+or other ways to install from the Maven Central repository or build a jar
+file from source code.
+
 EXAMPLE
 -------
 
