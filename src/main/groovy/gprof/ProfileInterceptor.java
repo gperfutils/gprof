@@ -1,7 +1,8 @@
 package gprof;
 
-import groovy.lang.Interceptor;
+import groovy.lang.*;
 
+import java.beans.IntrospectionException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
