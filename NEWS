@@ -5,7 +5,7 @@ Support multi-threaded applications
 
 Support Grape
 
-Add includeNames and excludeNames options that filter by the name of packages,
+Add includeMethods and excludeMethods options that filter by the name of packages,
 classes and methods:
 
     It supports the following wildcards:
