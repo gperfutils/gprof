@@ -40,14 +40,15 @@ public class ProfileMatcher {
                 // Completed.
                 return true;
             } else if (patternChar == '*') {
+                patternChar = pattern[patternIndex];
+                if (patternChar == '\0') {
+                    // If the pattern ends with "*", completed.
+                    return true;
+                }
                 // Skip unmatched characters.
                 while (true) {
                     patternChar = pattern[patternIndex];
-                    if (patternChar == '\0') {
-                        // Completed.
-                        return true;
-                    }
-                    if (patternChar == '*' || patternChar == '?') {
+                    if (patternChar == '\0' || patternChar == '*' || patternChar == '?') {
                         break;
                     }
                     while (true) {

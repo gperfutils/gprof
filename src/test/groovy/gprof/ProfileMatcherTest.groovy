@@ -22,6 +22,7 @@ class ProfileMatcherTest {
     @Test void "does not use wildcards"() {
         def matcher = new ProfileMatcher("java.lang.String.getClass")
         assert matcher.match("java.lang.String.getClass")
+        assert !matcher.match("java.lang.String.getClassLoader")
     }
 
     @Test void "use '*' wildcard"() {
@@ -38,10 +39,12 @@ class ProfileMatcherTest {
         matcher = new ProfileMatcher("java.*")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("javax.lang.String.ctor")
+        assert !matcher.match("xjava.lang.String.ctor")
 
         matcher = new ProfileMatcher("*.ctor")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("java.lang.String.size")
+        assert !matcher.match("java.lang.String.ctorx")
 
         matcher = new ProfileMatcher("java.*.ctor")
         assert matcher.match("java.lang.String.ctor")
