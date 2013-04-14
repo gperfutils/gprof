@@ -71,35 +71,26 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
-
+        /*
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
             originalMetaClasses.add(registry.getMetaClass(theClass));
             registry.removeMetaClass(theClass);
         }
+        */
         // This is a hack.
-        // Remove classes that have not been ClassInfo
         try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            while (loader != null) {
-                Field classesField = ClassLoader.class.getDeclaredField("classes");
-                classesField.setAccessible(true);
-                Vector<Class> classes = (Vector<Class>) classesField.get(loader);
-                for (int i = 0, n = classes.size(); i < n; i++) {
-                    try {
-                        Class theClass = classes.get(i);
-                        originalMetaClasses.add(registry.getMetaClass(theClass));
-                        registry.removeMetaClass(theClass);
-                    } catch (NoClassDefFoundError e) {
-                    }
-                }
-                loader = loader.getParent();
+            Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
+            classSetField.setAccessible(true);
+            ClassInfo.ClassInfoSet classSet = (ClassInfo.ClassInfoSet) classSetField.get(ClassInfo.class);
+            for (ClassInfo classInfo : (Collection<ClassInfo>) classSet.values()) {
+                Class theClass = classInfo.get();
+                originalMetaClasses.add(registry.getMetaClass(theClass));
+                registry.removeMetaClass(theClass);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
-        registry.setMetaClassCreationHandle(this);
     }
 
     private void end() {
