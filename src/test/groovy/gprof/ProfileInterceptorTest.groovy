@@ -20,11 +20,41 @@ import org.junit.Test
 
 class ProfileInterceptorTest {
 
-    @Test void "excludes or includes calls"() {
+    @Test void "excludes and includes threads"() {
+        def filter = new ProfileThreadFilter();
+        filter.addInclude("thread-")
+        filter.addExclude("thread-2")
+        def interceptor = new ProfileInterceptor(new ProfileMethodFilter(), filter)
+
+        def excludes = []
+        def includes = []
+        Thread.start("thread-1") {
+            def o = new ArrayList()
+            interceptor.beforeInvoke(o, "ctor", null)
+            interceptor.afterInvoke(o, "ctor", null, o)
+            includes << "java.util.ArrayList.ctor"
+        }
+        Thread.start("thread-2") {
+            def o = new LinkedList()
+            interceptor.beforeInvoke(o, "ctor", null)
+            interceptor.afterInvoke(o, "ctor", null, o)
+            excludes << "java.util.LinkedList.ctor"
+        }
+
+        interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
+            void visit(ProfileCallTree.Node node) {
+                def name = node.data.className + "." + node.data.methodName
+                assert includes.contains(name)
+                assert !excludes.contains(name)
+            }
+        })
+    }
+
+    @Test void "excludes and includes methods"() {
         def filter = new ProfileMethodFilter()
         filter.addIncludes([ "java.lang.*", "java.util.*" ])
         filter.addExcludes([ "java.lang.String.*", "java.util.List.*" ])
-        def interceptor = new ProfileInterceptor(filter)
+        def interceptor = new ProfileInterceptor(filter, new ProfileThreadFilter())
 
         def excludes = []
         def includes = []
@@ -61,7 +91,7 @@ class ProfileInterceptorTest {
         def depth1 = { Thread.sleep 200 }
         def depth2 = { Thread.sleep 300 }
 
-        def interceptor = new ProfileInterceptor(new ProfileMethodFilter());
+        def interceptor = new ProfileInterceptor(new ProfileMethodFilter(), new ProfileThreadFilter());
         interceptor.beforeInvoke(depth0, "call", null)
         depth0()
         interceptor.beforeInvoke(depth1, "call", null)

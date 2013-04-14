@@ -15,14 +15,11 @@
  * limitations under the License.
  */
 
-profile(includeMethods: ["java.util.*List.*"], excludeMethods: [ "*.ctor" ]) {
-    def list
-    list = new LinkedList()
-    list << String.valueOf(true)
-    list << String.valueOf(1)
-    list << String.valueOf('a')
-    list = new ArrayList(list)
-    list[0]
-    list[1]
-    list[2]
+profile(includeThreads: [ "thread-*" ], excludeThreads: [ "thread-2" ]) {
+    Thread.start("thread-1") {
+        new ArrayList()
+    }
+    Thread.start("thread-2") {
+        new LinkedList()
+    }
 }.prettyPrint()

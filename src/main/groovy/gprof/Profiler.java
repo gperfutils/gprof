@@ -30,9 +30,11 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     private static Map defaultOptions;
     static {
         defaultOptions = new HashMap();
-        defaultOptions.put("includes", Collections.emptyList());
+        defaultOptions.put("includeMethods", Collections.emptyList());
         // I believe grabbing phase must be excluded. Is there anyone wants to profile it?
-        defaultOptions.put("excludes", Arrays.asList("groovy.grape.*"));
+        defaultOptions.put("excludeMethods", Arrays.asList("groovy.grape.*"));
+        defaultOptions.put("includeThreads", Collections.emptyList());
+        defaultOptions.put("excludeThreads", Collections.emptyList());
     }
 
     private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
@@ -48,10 +50,13 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         Map<String, Object> opts = new HashMap(defaultOptions);
         opts.putAll(options);
 
-        ProfileMethodFilter filter = new ProfileMethodFilter();
-        filter.addIncludes((List) opts.get("includes"));
-        filter.addExcludes((List) opts.get("excludes"));
-        this.interceptor = new ProfileInterceptor(filter);
+        ProfileMethodFilter methodFilter = new ProfileMethodFilter();
+        methodFilter.addIncludes((List) opts.get("includeMethods"));
+        methodFilter.addExcludes((List) opts.get("excludeMethods"));
+        ProfileThreadFilter threadFilter = new ProfileThreadFilter();
+        threadFilter.addIncludes((List) opts.get("includeThreads"));
+        threadFilter.addExcludes((List) opts.get("excludeThreads"));
+        this.interceptor = new ProfileInterceptor(methodFilter, threadFilter);
 
         start();
         try {

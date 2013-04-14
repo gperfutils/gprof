@@ -10,18 +10,23 @@ public class ProfileInterceptor implements Interceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
     private ProfileCallTree tree;
-    private ProfileMethodFilter filter;
+    private ProfileMethodFilter methodFilter;
+    private ProfileThreadFilter threadFilter;
 
-    public ProfileInterceptor(ProfileMethodFilter filter) {
+    public ProfileInterceptor(ProfileMethodFilter methodFilter, ProfileThreadFilter threadFilter) {
         interceptors = new ConcurrentHashMap<Thread, LocalInterceptor>();
-        this.filter = filter;
-        filter.addExclude("groovy.grape.*");
+        this.methodFilter = methodFilter;
+        this.threadFilter = threadFilter;
     }
 
     private LocalInterceptor getLocalInterceptor() {
+        Thread thread = Thread.currentThread();
+        if (!threadFilter.accept(thread)) {
+            return LocalInterceptor.DO_NOT_INTERCEPT;
+        }
         LocalInterceptor theInterceptor = interceptors.get(Thread.currentThread());
         if (theInterceptor == null) {
-            theInterceptor = new LocalInterceptor(filter);
+            theInterceptor = new LocalInterceptor(methodFilter, threadFilter);
             interceptors.put(Thread.currentThread(), theInterceptor);
         }
         return theInterceptor;
@@ -76,14 +81,27 @@ public class ProfileInterceptor implements Interceptor {
         private Stack<ProfileCallTree.Node> nodeStack;
         private Stack<Long> timeStack;
         private boolean ignoring;
-        private ProfileMethodFilter filter;
+        private ProfileMethodFilter methodFilter;
+        private ProfileThreadFilter threadFilter;
 
-        public LocalInterceptor(ProfileMethodFilter filter) {
+        private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null, null) {
+            @Override
+            public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
+                return null;
+            }
+            @Override
+            public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
+                return result;
+            }
+        };
+
+        public LocalInterceptor(ProfileMethodFilter methodFilter, ProfileThreadFilter threadFilter) {
             tmpTree = new ProfileCallTree();
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
-            this.filter = filter;
+            this.methodFilter = methodFilter;
+            this.threadFilter = threadFilter;
         }
 
         private String classNameOf(Object object) {
@@ -102,7 +120,7 @@ public class ProfileInterceptor implements Interceptor {
                 // Skip while processing a call to be excluded.
                 return null;
             }
-            ignoring = !filter.accept(classNameOf(object), methodName);
+            ignoring = !methodFilter.accept(classNameOf(object), methodName);
 
             ProfileCallTree.Node node = new ProfileCallTree.Node(new ProfileCallEntry(classNameOf(object), methodName));
             ProfileCallTree.Node parentNode = nodeStack.peek();
@@ -116,7 +134,7 @@ public class ProfileInterceptor implements Interceptor {
 
         @Override
         public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-            if (ignoring && (ignoring = filter.accept(classNameOf(object), methodName))) {
+            if (ignoring && (ignoring = methodFilter.accept(classNameOf(object), methodName))) {
                 // Skip while processing a call to be excluded.
                 return result;
             }
@@ -152,7 +170,7 @@ public class ProfileInterceptor implements Interceptor {
                     }
                     node.getData().setTime(new ProfileTime(time));
                     ProfileCallEntry theCall = node.getData();
-                    if (!filter.accept(theCall.getClassName(), theCall.getMethodName())) {
+                    if (!methodFilter.accept(theCall.getClassName(), theCall.getMethodName())) {
                         ProfileCallTree.Node parentNode = node.getParent();
                         if (parentNode != tree.getRoot()) {
                             ProfileCallEntry parentCall = parentNode.getData();
