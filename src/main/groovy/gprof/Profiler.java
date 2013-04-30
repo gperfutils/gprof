@@ -33,7 +33,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         defaultOptions = new HashMap();
         defaultOptions.put("includeMethods", Collections.emptyList());
         // I believe grabbing phase must be excluded. Is there anyone wants to profile it?
-        defaultOptions.put("excludeMethods", Arrays.asList("groovy.grape.*"));
+        defaultOptions.put("excludeMethods", Arrays.asList("gprof.*", "groovy.grape.*"));
         defaultOptions.put("includeThreads", Collections.emptyList());
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
@@ -48,28 +48,37 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     }
 
     public Profile run(Map<String, Object> options, Callable profiled) {
+        try {
+            start(options);
+            try {
+                profiled.call();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            stop();
+            return getResult();
+        } finally {
+            reset();
+        }
+    }
+
+    public void start() {
+        start(Collections.<String, Object>emptyMap());
+    }
+
+    public void start(Map<String, Object> options) {
         Map<String, Object> opts = new HashMap(defaultOptions);
         opts.putAll(options);
-
         ProfileMethodFilter methodFilter = new ProfileMethodFilter();
         methodFilter.addIncludes((List) opts.get("includeMethods"));
         methodFilter.addExcludes((List) opts.get("excludeMethods"));
         ProfileThreadFilter threadFilter = new ProfileThreadFilter();
         threadFilter.addIncludes((List) opts.get("includeThreads"));
         threadFilter.addExcludes((List) opts.get("excludeThreads"));
-        this.interceptor = new ProfileInterceptor(methodFilter, threadFilter);
-
-        start();
-        try {
-            profiled.call();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (interceptor == null) {
+            this.interceptor = new ProfileInterceptor(methodFilter, threadFilter);
         }
-        end();
-        return new Profile(interceptor.getTree());
-    }
 
-    private void start() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
         registry.setMetaClassCreationHandle(this);
@@ -95,7 +104,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
     }
 
-    private void end() {
+    public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         registry.setMetaClassCreationHandle(originalMetaClassCreationHandle);
         for (ProfileMetaClass metaClass : proxyMetaClasses) {
@@ -105,6 +114,14 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         for (MetaClass metaClass : originalMetaClasses) {
             registry.setMetaClass(metaClass.getTheClass(), metaClass);
         }
+    }
+
+    public void reset() {
+        interceptor = null;
+    }
+
+    public Profile getResult() {
+        return new Profile(interceptor.getTree());
     }
 
     @Override

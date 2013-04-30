@@ -20,13 +20,13 @@ import java.util.*;
 
 public class Profile {
 
-    private List<ProfileMethodEntry> methodEntries;
+    List<ProfileMethodEntry> methodEntries;
 
     public Profile(ProfileCallTree tree) {
         methodEntries = makeMethodEntries(tree);
     }
 
-    private List<ProfileMethodEntry> makeMethodEntries(ProfileCallTree tree) {
+    List<ProfileMethodEntry> makeMethodEntries(ProfileCallTree tree) {
         final List<ProfileMethodEntry> entries = new ArrayList();
         final ProfileTime[] time = { new ProfileTime(0) };
 
@@ -78,7 +78,7 @@ public class Profile {
         new ProfileFlatPrinter(methodEntries).print(writer, comparator);
     }
 
-    private static class DefaultComparator implements Comparator<ProfileMethodEntry> {
+    static class DefaultComparator implements Comparator<ProfileMethodEntry> {
 
         @Override
         public int compare(ProfileMethodEntry o1, ProfileMethodEntry o2) {

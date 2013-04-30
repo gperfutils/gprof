@@ -8,18 +8,65 @@ import static org.junit.Assert.*
 
 class ProfilerTest {
 
-    String sleep100() {
-        Thread.sleep(100)
-    }
-    String sleep200() {
-        Thread.sleep(200)
+    @Test void startAndStop() {
+        def p = new Profiler()
+        p.start()
+        Thread.sleep(1)
+        p.stop()
+        boolean b = false
+        p.result.methodEntries.find { e ->
+            if (e.className == Thread.class.name &&
+                e.methodName == "sleep" &&
+                e.callEntries.size() == 1) {
+                b = true
+                return false
+            }
+            return true
+        }
+        assert b
     }
 
-    @Test void defaultRun() {
-        profile {
-            sleep100()
-            sleep200()
-        }.prettyPrint()
+    @Test void restart() {
+        def p = new Profiler()
+        p.start()
+        Thread.sleep(1)
+        p.stop()
+        p.start()
+        Thread.sleep(1)
+        p.stop()
+        boolean b = false
+        p.result.methodEntries.find { e ->
+            if (e.className == Thread.class.name &&
+                e.methodName == "sleep" &&
+                e.callEntries.size() == 2) {
+                b = true
+                return false
+            }
+            return true
+        }
+        assert b
+    }
+
+    @Test void reset() {
+        def p = new Profiler()
+        p.start()
+        Thread.sleep(1)
+        p.stop()
+        p.reset()
+        p.start()
+        Thread.sleep(1)
+        p.stop()
+        boolean b = false
+        p.result.methodEntries.find { e ->
+            if (e.className == Thread.class.name &&
+                e.methodName == "sleep" &&
+                e.callEntries.size() == 1) {
+                b = true
+                return false
+            }
+            return true
+        }
+        assert b
     }
 
 }

@@ -49,10 +49,7 @@ public class ProfileInterceptor implements Interceptor {
     }
 
     public ProfileCallTree getTree() {
-        if (tree == null) {
-            tree = makeTree();
-        }
-        return tree;
+        return makeTree();
     }
 
     ProfileCallTree makeTree() {
