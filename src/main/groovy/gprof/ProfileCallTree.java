@@ -24,8 +24,8 @@ public class ProfileCallTree {
 
     private Node root;
 
-    public ProfileCallTree() {
-        this.root = new Node(null);
+    public ProfileCallTree(Thread thread) {
+        this.root = new Node(new ProfileThreadEntry(thread));
     }
 
     public void visit(NodeVisitor visitor) {
@@ -43,11 +43,11 @@ public class ProfileCallTree {
 
     public static class Node {
 
-        private ProfileCallEntry data;
+        private ProfileEntry data;
         private Node parent;
         private List<Node> children;
 
-        public Node(ProfileCallEntry data) {
+        public Node(ProfileEntry data) {
             this.data = data;
         }
 
@@ -78,7 +78,7 @@ public class ProfileCallTree {
             return children != null;
         }
 
-        public ProfileCallEntry getData() {
+        public ProfileEntry getData() {
             return data;
         }
 

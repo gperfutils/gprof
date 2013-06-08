@@ -15,30 +15,15 @@
  */
 package gprof;
 
-public class ProfileCallEntry extends ProfileEntry {
+public abstract class ProfileEntry {
 
-    private String className;
-    private String methodName;
+    private ProfileTime time;
 
-    public ProfileCallEntry(String className, String methodName) {
-        this.className = className;
-        this.methodName = methodName;
+    public void setTime(ProfileTime time) {
+        this.time = time;
     }
 
-    public String getClassName() {
-        return className;
-    }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public String getName() {
-        return className + "." + methodName;
-    }
-
-    @Override
-    public String toString() {
-        return getName();
+    public ProfileTime getTime() {
+        return time;
     }
 }

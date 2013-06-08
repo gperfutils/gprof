@@ -15,30 +15,16 @@
  */
 package gprof;
 
-public class ProfileCallEntry extends ProfileEntry {
+public class ProfileThreadEntry extends ProfileEntry {
 
-    private String className;
-    private String methodName;
+    private Thread thread;
 
-    public ProfileCallEntry(String className, String methodName) {
-        this.className = className;
-        this.methodName = methodName;
+    public ProfileThreadEntry(Thread thread) {
+        this.thread = thread;
     }
 
-    public String getClassName() {
-        return className;
+    public Thread getThread() {
+        return thread;
     }
 
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public String getName() {
-        return className + "." + methodName;
-    }
-
-    @Override
-    public String toString() {
-        return getName();
-    }
 }

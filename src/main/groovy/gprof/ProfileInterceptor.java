@@ -64,10 +64,10 @@ public class ProfileInterceptor implements Interceptor {
                 }
             }
         }
-        ProfileCallTree tree = new ProfileCallTree();
+        ProfileCallTree tree = new ProfileCallTree(profThread);
         for (LocalInterceptor interceptor : interceptors.values()) {
             ProfileCallTree theTree = interceptor.getTree();
-            tree.getRoot().getChildren().addAll(theTree.getRoot().getChildren());
+            tree.getRoot().getChildren().add(theTree.getRoot());
         }
         return tree;
     }
@@ -94,7 +94,7 @@ public class ProfileInterceptor implements Interceptor {
         };
 
         public LocalInterceptor(ProfileMethodFilter methodFilter, ProfileThreadFilter threadFilter) {
-            tmpTree = new ProfileCallTree();
+            tmpTree = new ProfileCallTree(Thread.currentThread());
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
@@ -149,11 +149,11 @@ public class ProfileInterceptor implements Interceptor {
             tree.visit(new ProfileCallTree.NodeVisitor() {
                 @Override
                 public void visit(ProfileCallTree.Node node) {
-                    ProfileCallEntry theCall = node.getData();
+                    ProfileEntry entry = node.getData();
                     ProfileCallTree.Node parentNode = node.getParent();
                     if (parentNode != tree.getRoot()) {
-                        ProfileCallEntry parentCall = parentNode.getData();
-                        parentCall.setTime(parentCall.getTime().minus(theCall.getTime()));
+                        ProfileEntry parentCall = parentNode.getData();
+                        parentCall.setTime(parentCall.getTime().minus(entry.getTime()));
                     }
                 }
             });
@@ -162,11 +162,14 @@ public class ProfileInterceptor implements Interceptor {
                 public void visit(ProfileCallTree.Node node) { }
                 @Override
                 public void exit(ProfileCallTree.Node node) {
-                    ProfileCallEntry theCall = node.getData();
-                    if (!methodFilter.accept(theCall.getClassName(), theCall.getMethodName())) {
-                        ProfileCallTree.Node parentNode = node.getParent();
-                        parentNode.getChildren().remove(node);
-                        parentNode.getChildren().addAll(node.getChildren());
+                    ProfileEntry entry = node.getData();
+                    if (entry instanceof ProfileCallEntry) {
+                        ProfileCallEntry call = (ProfileCallEntry) entry;
+                        if (!methodFilter.accept(call.getClassName(), call.getMethodName())) {
+                            ProfileCallTree.Node parentNode = node.getParent();
+                            parentNode.getChildren().remove(node);
+                            parentNode.getChildren().addAll(node.getChildren());
+                        }
                     }
                 }
             });

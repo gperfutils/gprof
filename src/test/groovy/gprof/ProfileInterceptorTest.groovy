@@ -43,9 +43,11 @@ class ProfileInterceptorTest {
 
         interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
             void visit(ProfileCallTree.Node node) {
-                def name = node.data.className + "." + node.data.methodName
-                assert includes.contains(name)
-                assert !excludes.contains(name)
+                if (node instanceof ProfileCallEntry) {
+                    def name = node.data.className + "." + node.data.methodName
+                    assert includes.contains(name)
+                    assert !excludes.contains(name)
+                }
             }
         })
     }
@@ -78,9 +80,11 @@ class ProfileInterceptorTest {
 
         interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
             void visit(ProfileCallTree.Node node) {
-                def name = node.data.className + "." + node.data.methodName
-                assert includes.contains(name)
-                assert !excludes.contains(name)
+                if (node instanceof ProfileCallEntry) {
+                    def name = node.data.className + "." + node.data.methodName
+                    assert includes.contains(name)
+                    assert !excludes.contains(name)
+                }
             }
         })
 

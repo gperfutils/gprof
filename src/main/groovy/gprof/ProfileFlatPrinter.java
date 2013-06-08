@@ -18,17 +18,21 @@ package gprof;
 import java.io.PrintWriter;
 import java.util.*;
 
-public class ProfileFlatPrinter {
+public class ProfileFlatPrinter implements ProfilePrinter {
 
     private static String SP = "  ";
 
-    private List<ProfileMethodEntry> methodEntries = new ArrayList();
+    private List<ProfileMethodEntry> methodEntries;
 
-    public ProfileFlatPrinter(List<ProfileMethodEntry> methodEntries) {
-        this.methodEntries = methodEntries;
+    public ProfileFlatPrinter(ProfileCallTree callTree) {
+        this.methodEntries = new ProfileFlatNormalizer().normalize(callTree);
     }
 
-    public void print(PrintWriter writer, Comparator<ProfileMethodEntry> comparator) {
+    public void print(PrintWriter writer) {
+        print(writer, new DefaultComparator());
+    }
+
+    public void print(PrintWriter writer, Comparator comparator) {
         Collections.sort(methodEntries, comparator);
         List<Map<COLUMN, String>> rows = createRowValueList();
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
@@ -124,6 +128,24 @@ public class ProfileFlatPrinter {
         COLUMN(String name, String format) {
             this.name = name;
             this.format = format;
+        }
+    }
+
+    static class DefaultComparator implements Comparator<ProfileMethodEntry> {
+
+        @Override
+        public int compare(ProfileMethodEntry o1, ProfileMethodEntry o2) {
+            int r = -(o1.getTime().compareTo(o2.getTime()));
+            if (r == 0) {
+                r = -(((Integer) o1.getCallEntries().size()).compareTo(o2.getCallEntries().size()));
+                if (r == 0) {
+                    r = o1.getClassName().compareTo(o2.getClassName());
+                    if (r == 0) {
+                        r = o1.getMethodName().compareTo(o2.getMethodName());
+                    }
+                }
+            }
+            return r;
         }
     }
 

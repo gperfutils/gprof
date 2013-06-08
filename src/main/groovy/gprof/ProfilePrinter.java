@@ -15,30 +15,13 @@
  */
 package gprof;
 
-public class ProfileCallEntry extends ProfileEntry {
+import java.io.PrintWriter;
+import java.util.Comparator;
 
-    private String className;
-    private String methodName;
+public interface ProfilePrinter {
 
-    public ProfileCallEntry(String className, String methodName) {
-        this.className = className;
-        this.methodName = methodName;
-    }
+    public void print(PrintWriter writer);
 
-    public String getClassName() {
-        return className;
-    }
+    public void print(PrintWriter writer, Comparator comparator);
 
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public String getName() {
-        return className + "." + methodName;
-    }
-
-    @Override
-    public String toString() {
-        return getName();
-    }
 }

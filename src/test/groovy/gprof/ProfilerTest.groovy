@@ -8,13 +8,17 @@ import static org.junit.Assert.*
 
 class ProfilerTest {
 
+    List flatten(ProfileCallTree callTree) {
+        return new ProfileFlatNormalizer().normalize(callTree)
+    }
+
     @Test void startAndStop() {
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
+        flatten(p.result.callTree).find { e ->
             if (e.className == Thread.class.name &&
                 e.methodName == "sleep" &&
                 e.callEntries.size() == 1) {
@@ -35,7 +39,7 @@ class ProfilerTest {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
+        flatten(p.result.callTree).find { e ->
             if (e.className == Thread.class.name &&
                 e.methodName == "sleep" &&
                 e.callEntries.size() == 2) {
@@ -57,7 +61,7 @@ class ProfilerTest {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
+        flatten(p.result.callTree).find { e ->
             if (e.className == Thread.class.name &&
                 e.methodName == "sleep" &&
                 e.callEntries.size() == 1) {

@@ -20,50 +20,22 @@ import java.util.*;
 
 public class Profile {
 
-    List<ProfileMethodEntry> methodEntries;
+    private ProfileCallTree callTree;
+    private ProfilePrinter printer;
 
-    public Profile(ProfileCallTree tree) {
-        methodEntries = makeMethodEntries(tree);
+    public Profile(ProfileCallTree callTree) {
+        this.callTree = callTree;
     }
 
-    List<ProfileMethodEntry> makeMethodEntries(ProfileCallTree tree) {
-        final List<ProfileMethodEntry> entries = new ArrayList();
-        final ProfileTime[] time = { new ProfileTime(0) };
+    public ProfileCallTree getCallTree() {
+        return callTree;
+    }
 
-        tree.visit(new ProfileCallTree.NodeVisitor() {
-
-            Map<String, ProfileMethodEntry> methodEntryMap = new HashMap();
-
-            public void visit(ProfileCallTree.Node node) {
-                ProfileCallEntry callEntry = node.getData();
-                String key = String.format("%s.%s", callEntry.getClassName(), callEntry.getMethodName());
-                ProfileMethodEntry methodEntry = methodEntryMap.get(key);
-                if (methodEntry == null) {
-                    methodEntry = new ProfileMethodEntry(callEntry.getClassName(), callEntry.getMethodName());
-                    methodEntryMap.put(key, methodEntry);
-                    entries.add(methodEntry);
-                }
-                methodEntry.getCallEntries().add(callEntry);
-                ProfileTime theTime = callEntry.getTime();
-                if (methodEntry.getTime() == null) {
-                    methodEntry.setTime(theTime);
-                } else {
-                    methodEntry.setTime(methodEntry.getTime().plus(theTime));
-                }
-                if (methodEntry.getMinTime() == null || methodEntry.getMinTime().compareTo(theTime) > 0) {
-                    methodEntry.setMinTime(theTime);
-                }
-                if (methodEntry.getMaxTime() == null || methodEntry.getMaxTime().compareTo(theTime) < 0) {
-                    methodEntry.setMaxTime(theTime);
-                }
-                time[0] = time[0].plus(theTime);
-            }
-        });
-        for (ProfileMethodEntry methodEntry : entries) {
-            methodEntry.setPercent(methodEntry.getTime().milliseconds() / time[0].milliseconds() * 100);
-            methodEntry.setTimePerCall(methodEntry.getTime().div(methodEntry.getCallEntries().size()));
+    public ProfilePrinter getPrinter() {
+        if (printer == null) {
+            printer = new ProfileFlatPrinter(callTree);
         }
-        return entries;
+        return printer;
     }
 
     public void prettyPrint() {
@@ -71,29 +43,11 @@ public class Profile {
     }
 
     public void prettyPrint(PrintWriter writer) {
-        prettyPrint(writer, new DefaultComparator());
+        prettyPrint(writer);
     }
 
-    public void prettyPrint(PrintWriter writer, Comparator<ProfileMethodEntry> comparator) {
-        new ProfileFlatPrinter(methodEntries).print(writer, comparator);
-    }
-
-    static class DefaultComparator implements Comparator<ProfileMethodEntry> {
-
-        @Override
-        public int compare(ProfileMethodEntry o1, ProfileMethodEntry o2) {
-            int r = -(o1.getTime().compareTo(o2.getTime()));
-            if (r == 0) {
-                r = -(((Integer) o1.getCallEntries().size()).compareTo(o2.getCallEntries().size()));
-                if (r == 0) {
-                    r = o1.getClassName().compareTo(o2.getClassName());
-                    if (r == 0) {
-                        r = o1.getMethodName().compareTo(o2.getMethodName());
-                    }
-                }
-            }
-            return r;
-        }
+    public void prettyPrint(PrintWriter writer, Comparator comparator) {
+        getPrinter().print(writer, comparator);
     }
 
 }

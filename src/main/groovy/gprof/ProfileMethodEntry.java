@@ -18,7 +18,7 @@ package gprof;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileMethodEntry {
+public class ProfileMethodEntry extends ProfileEntry {
 
     private String className;
     private String methodName;
@@ -47,10 +47,6 @@ public class ProfileMethodEntry {
         return callEntries;
     }
 
-    public ProfileTime getTime() {
-        return time;
-    }
-
     public ProfileTime getTimePerCall() {
         return timePerCall;
     }
@@ -71,10 +67,6 @@ public class ProfileMethodEntry {
         this.maxTime = maxTime;
     }
 
-    public void setTime(ProfileTime time) {
-        this.time = time;
-    }
-
     public void setTimePerCall(ProfileTime timePerCall) {
         this.timePerCall = timePerCall;
     }
@@ -85,5 +77,10 @@ public class ProfileMethodEntry {
 
     public void setPercent(double percent) {
         this.percent = percent;
+    }
+
+    @Override
+    public String toString() {
+        return className + "." + methodName + " * " + callEntries.size();
     }
 }
