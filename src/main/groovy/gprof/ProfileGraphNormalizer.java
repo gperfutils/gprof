@@ -15,7 +15,12 @@
  */
 package gprof;
 
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 
 public class ProfileGraphNormalizer {
 
@@ -55,7 +60,7 @@ public class ProfileGraphNormalizer {
                         ProfileMethodEntry method = new ProfileMethodEntry(call.getClassName(), call.getMethodName());
                         method.setTime(call.getTime());
                         graph = new ProfileGraphEntry(index, thread, method, indexTableStack.size() - 1);
-                        graph.setSelfTime(call.getTime());
+                        graph.setTime(call.getTime());
                         graphTable.put(index, graph);
                     }
                     ProfileMethodEntry method = graph.getMethod();
@@ -67,7 +72,7 @@ public class ProfileGraphNormalizer {
                         if (!indexTable.containsKey(childCall.getName())) {
                             long childIndex = ++lastIndex;
                             float childTimePercent = childCall.getTime().nanoseconds() / call.getTime().nanoseconds();
-                            graph.addChild(new ProfileGraphEntry.Child(childIndex, childTimePercent));
+                            graph.addChild(new ProfileGraphEntry.Child(childIndex));
                             graph.setChildrenTime(graph.getChildrenTime().plus(childCall.getTime()));
                             indexTable.put(childCall.getName(), childIndex);
                         }
@@ -91,8 +96,17 @@ public class ProfileGraphNormalizer {
                     thread.setTime(new ProfileTime(totalTime));
                     for (ProfileGraphEntry graph : graphTable.values()) {
                         if (graph.getThread() == thread) {
-                            graph.setTimePercent(graph.getSelfTime().nanoseconds() / thread.getTime().nanoseconds());
+                            graph.setTimePercent(((float) graph.getTime().nanoseconds()) / thread.getTime().nanoseconds() * 100f);
                         }
+                    }
+                } else if (node.getData() instanceof ProfileCallEntry) {
+                    ProfileCallEntry call = (ProfileCallEntry) node.getData();
+                    long index = indexTableStack.peek().get(call.getName());
+                    ProfileGraphEntry graph = graphTable.get(index);
+                    graph.setSelfTime(graph.getTime().minus(graph.getChildrenTime()));
+                    for (ProfileGraphEntry.Child graphChild : graph.getChildren()) {
+                        ProfileGraphEntry childRef = graphTable.get(graphChild.getIndex());
+                        graphChild.setTimePercent((float) (childRef.getTime().nanoseconds()) / graph.getTime().nanoseconds() * 100f);
                     }
                 }
             }

@@ -25,9 +25,8 @@ public class ProfileGraphEntry extends ProfileEntry {
         private long index;
         private float timePercent;
 
-        public Child(long index, float timePercent) {
+        public Child(long index) {
             this.index = index;
-            this.timePercent = timePercent;
         }
 
         public long getIndex() {
@@ -36,6 +35,10 @@ public class ProfileGraphEntry extends ProfileEntry {
 
         public float getTimePercent() {
             return timePercent;
+        }
+
+        public void setTimePercent(float timePercent) {
+            this.timePercent = timePercent;
         }
     }
 

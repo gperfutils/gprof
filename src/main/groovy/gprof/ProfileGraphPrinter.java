@@ -20,6 +20,9 @@ import java.util.*;
 
 public class ProfileGraphPrinter implements ProfilePrinter {
 
+    private static Character SEPARATOR_CHAR = '-';
+    private static String COLUMN_SEPARATOR = "  ";
+
     private List<ProfileGraphEntry> entries;
 
     public ProfileGraphPrinter(ProfileCallTree callTree) {
@@ -38,7 +41,7 @@ public class ProfileGraphPrinter implements ProfilePrinter {
             graphTable.put(entry.getIndex(), entry);
         }
 
-        List<Map<Column, String>> lines = new ArrayList();
+        List lines = new ArrayList();
         Map<Column, String> header = new HashMap();
         for (Column col : Column.values()) {
             header.put(col, col.toString());
@@ -52,8 +55,6 @@ public class ProfileGraphPrinter implements ProfilePrinter {
                             String.format("[%d]", entry.getIndex()),
                         Column.TOTAL_TIME_PERCENT,
                             String.format("%.1f", entry.getTimePercent()),
-                        Column.SELF_TIME_PERCENT,
-                            String.format("%.1f", 100f),
                         Column.SELF_TIME,
                             String.format("%.2f", entry.getSelfTime().microseconds()),
                         Column.CHILDREN_TIME,
@@ -72,8 +73,6 @@ public class ProfileGraphPrinter implements ProfilePrinter {
                                 "",
                             Column.TOTAL_TIME_PERCENT,
                                 "",
-                            Column.SELF_TIME_PERCENT,
-                                String.format("%.1f", child.getTimePercent()),
                             Column.SELF_TIME,
                                 String.format("%.2f", childRef.getSelfTime().microseconds()),
                             Column.CHILDREN_TIME,
@@ -81,70 +80,98 @@ public class ProfileGraphPrinter implements ProfilePrinter {
                             Column.CALLS,
                                 String.format("%d", childRef.getMethod().getCallEntries().size()),
                             Column.NAME,
-                                String.format("%s.%s [%d]",
+                                String.format("    %s.%s [%d]",
                                     childRef.getMethod().getClassName(), childRef.getMethod().getClassName(), child.getIndex())));
                 }
             }
+            lines.add(SEPARATOR_CHAR);
         }
 
         Map<Column, Integer> columnWidth = new HashMap();
         for (Column col : Column.values()) {
             columnWidth.put(col, 0);
         }
-        for (Map<Column, String> line : lines) {
-            for (Column col : line.keySet()) {
-                columnWidth.put(col, Math.max(columnWidth.get(col), line.get(col).length()));
-            }
-        }
-
-        for (Map<Column, String> line : lines) {
-            for (Column col : Column.values()) {
-                int w = columnWidth.get(col);
-                String format;
-                if (line == header) {
-                    format = "%-" + w + "s";
-                } else {
-                    switch(col) {
-                        case TOTAL_TIME_PERCENT:
-                        case SELF_TIME_PERCENT:
-                        case SELF_TIME:
-                        case CHILDREN_TIME:
-                        case CALLS:
-                            format = "%" + w + "s";
-                            break;
-                        default:
-                            format = "%-" + w + "s";
-                            break;
-                    }
+        for (Object line : lines) {
+            if (line instanceof Map) {
+                Map<Column, String> cols = (Map<Column, String>) line;
+                for (Column col : cols.keySet()) {
+                    columnWidth.put(col, Math.max(columnWidth.get(col), cols.get(col).length()));
                 }
-                line.put(col, String.format(format, line.get(col)));
+            }
+        }
+        int rowWidth = 0;
+        for (int w : columnWidth.values()) {
+            rowWidth += w;
+        }
+        rowWidth += COLUMN_SEPARATOR.length() * (columnWidth.values().size() - 2); // do not count Column.SPAN
+
+        for (Object line : lines) {
+            if (line instanceof Map) {
+                Map<Column, String> cols = (Map<Column, String>) line;
+                for (Column col : Column.values()) {
+                    if (col == Column.SPAN) {
+                        continue;
+                    }
+                    int w = columnWidth.get(col);
+                    String format;
+                    if (line == header) {
+                        format = "%-" + w + "s";
+                    } else {
+                        switch(col) {
+                            case TOTAL_TIME_PERCENT:
+                            case SELF_TIME:
+                            case CHILDREN_TIME:
+                            case CALLS:
+                                format = "%" + w + "s";
+                                break;
+                            default:
+                                format = "%-" + w + "s";
+                                break;
+                        }
+                    }
+                    cols.put(col, String.format(format, cols.get(col)));
+                }
             }
         }
 
-        String separator = "  ";
         List<Column> columns =
             Arrays.asList(
-                Column.INDEX, Column.TOTAL_TIME_PERCENT, Column.SELF_TIME_PERCENT,
+                Column.INDEX, Column.TOTAL_TIME_PERCENT,
                 Column.SELF_TIME, Column.CHILDREN_TIME, Column.CALLS, Column.NAME);
-        for (Map<Column, String> line: lines) {
-            List vs = new ArrayList(columns.size());
-            for (Column col : columns) {
-                vs.add(line.get(col));
+        String separator = createSeparator(rowWidth);
+
+        for (Object line: lines) {
+            if (line instanceof Map) {
+                Map<Column, String> cols = (Map<Column, String>) line;
+                List vs = new ArrayList(columns.size());
+                for (Column col : columns) {
+                    vs.add(cols.get(col));
+                }
+                writer.println(ProfileCollections.join(vs, "  "));
+            } else if (line == SEPARATOR_CHAR) {
+                writer.println(separator);
             }
-            writer.println(ProfileCollections.join(vs, separator));
         }
         writer.flush();
+    }
+
+    private String createSeparator(int rowWidth) {
+        StringBuilder separatorBuff = new StringBuilder();
+        for (int i = 0; i < rowWidth; i++) {
+            separatorBuff.append(SEPARATOR_CHAR);
+        }
+        return separatorBuff.toString();
     }
 
     public static enum Column {
 
         INDEX("index"),
         TOTAL_TIME_PERCENT("% time"),
-        SELF_TIME_PERCENT("% self"),
         SELF_TIME("self"),
         CHILDREN_TIME("children"),
         CALLS("calls"),
-        NAME("name");
+        NAME("name"),
+        SPAN(""); // FIXME ugly..
 
         private String name;
 
