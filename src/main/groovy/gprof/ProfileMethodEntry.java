@@ -22,6 +22,7 @@ public class ProfileMethodEntry extends ProfileEntry {
 
     private String className;
     private String methodName;
+    private String name;
     private List<ProfileCallEntry> callEntries;
     private double percent;
     private ProfileTime time;
@@ -32,6 +33,7 @@ public class ProfileMethodEntry extends ProfileEntry {
     public ProfileMethodEntry(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
+        this.name = className + "." + methodName;
         this.callEntries = new ArrayList();
     }
 
@@ -41,6 +43,10 @@ public class ProfileMethodEntry extends ProfileEntry {
 
     public String getMethodName() {
         return methodName;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public List<ProfileCallEntry> getCallEntries() {

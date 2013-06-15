@@ -48,41 +48,39 @@ public class ProfileGraphPrinter implements ProfilePrinter {
         }
         lines.add(header);
         for (ProfileGraphEntry entry : entries) {
-            if (entry.getDepth() == 0 || !entry.getChildren().isEmpty()) {
+            lines.add(
+                ProfileCollections.hashMap(
+                    Column.INDEX,
+                        String.format("[%d]", entry.getIndex()),
+                    Column.TOTAL_TIME_PERCENT,
+                        String.format("%.1f", entry.getTimePercent()),
+                    Column.SELF_TIME,
+                        String.format("%.2f", entry.getSelfTime().microseconds()),
+                    Column.CHILDREN_TIME,
+                        String.format("%.2f", entry.getChildrenTime().microseconds()),
+                    Column.CALLS,
+                        String.format("%d", entry.getMethod().getCallEntries().size()),
+                    Column.NAME,
+                        String.format("%s.%s [%d]",
+                            entry.getMethod().getClassName(), entry.getMethod().getMethodName(), entry.getIndex())));
+
+            for (ProfileGraphEntry.Child child : entry.getChildren()) {
+                ProfileGraphEntry childRef = graphTable.get(child.getIndex());
                 lines.add(
                     ProfileCollections.hashMap(
                         Column.INDEX,
-                            String.format("[%d]", entry.getIndex()),
+                            "",
                         Column.TOTAL_TIME_PERCENT,
-                            String.format("%.1f", entry.getTimePercent()),
+                            "",
                         Column.SELF_TIME,
-                            String.format("%.2f", entry.getSelfTime().microseconds()),
+                            String.format("%.2f", childRef.getSelfTime().microseconds()),
                         Column.CHILDREN_TIME,
-                            String.format("%.2f", entry.getChildrenTime().microseconds()),
+                            String.format("%.2f", childRef.getChildrenTime().microseconds()),
                         Column.CALLS,
-                            String.format("%d", entry.getMethod().getCallEntries().size()),
+                            String.format("%d", childRef.getMethod().getCallEntries().size()),
                         Column.NAME,
-                            String.format("%s.%s [%d]",
-                                entry.getMethod().getClassName(), entry.getMethod().getMethodName(), entry.getIndex())));
-
-                for (ProfileGraphEntry.Child child : entry.getChildren()) {
-                    ProfileGraphEntry childRef = graphTable.get(child.getIndex());
-                    lines.add(
-                        ProfileCollections.hashMap(
-                            Column.INDEX,
-                                "",
-                            Column.TOTAL_TIME_PERCENT,
-                                "",
-                            Column.SELF_TIME,
-                                String.format("%.2f", childRef.getSelfTime().microseconds()),
-                            Column.CHILDREN_TIME,
-                                String.format("%.2f", childRef.getChildrenTime().microseconds()),
-                            Column.CALLS,
-                                String.format("%d", childRef.getMethod().getCallEntries().size()),
-                            Column.NAME,
-                                String.format("    %s.%s [%d]",
-                                    childRef.getMethod().getClassName(), childRef.getMethod().getClassName(), child.getIndex())));
-                }
+                            String.format("    %s.%s [%d]",
+                                childRef.getMethod().getClassName(), childRef.getMethod().getMethodName(), child.getIndex())));
             }
             lines.add(SEPARATOR_CHAR);
         }

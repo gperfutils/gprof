@@ -67,6 +67,10 @@ public class ProfileGraphNormalizer {
                     method.getCallEntries().add(call);
 
                     Map<String, Long> indexTable = new HashMap();
+                    List childNames = new ArrayList();
+                    for (ProfileGraphEntry.Child child : graph.getChildren()) {
+                        indexTable.put(graphTable.get(child.getIndex()).getMethod().getName(), child.getIndex());
+                    }
                     for (ProfileCallTree.Node child : node.getChildren()) {
                         ProfileCallEntry childCall = (ProfileCallEntry) child.getData();
                         if (!indexTable.containsKey(childCall.getName())) {
