@@ -87,6 +87,26 @@ public class ProfileMethodEntry extends ProfileEntry {
 
     @Override
     public String toString() {
-        return className + "." + methodName + " * " + callEntries.size();
+        return className + "." + methodName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ProfileMethodEntry that = (ProfileMethodEntry) o;
+
+        if (className != null ? !className.equals(that.className) : that.className != null) return false;
+        if (methodName != null ? !methodName.equals(that.methodName) : that.methodName != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = className != null ? className.hashCode() : 0;
+        result = 31 * result + (methodName != null ? methodName.hashCode() : 0);
+        return result;
     }
 }

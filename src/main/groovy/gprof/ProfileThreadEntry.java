@@ -27,4 +27,27 @@ public class ProfileThreadEntry extends ProfileEntry {
         return thread;
     }
 
+    @Override
+    public String toString() {
+        return "ProfileThreadEntry{" +
+                "thread=" + thread +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ProfileThreadEntry that = (ProfileThreadEntry) o;
+
+        if (thread != null ? !thread.equals(that.thread) : that.thread != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return thread != null ? thread.hashCode() : 0;
+    }
 }

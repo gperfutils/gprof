@@ -107,13 +107,15 @@ class ProfileInterceptorTest {
         interceptor.afterInvoke(depth0, "call", null, null)
 
         interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
-            def lastNode = null
+            def lastCall = null
             void visit(ProfileCallTree.Node node) {
-                if (lastNode != null) {
-                    assert node.parent == lastNode
-                    assert node.data.time > lastNode.data.time
+                if (lastCall != null) {
+                    assert node.parent.data == lastCall
+                    assert node.data.time > lastCall.time
                 }
-                lastNode = node
+                if (node.data instanceof ProfileCallEntry) {
+                    lastCall = node.data
+                }
             }
         })
     }

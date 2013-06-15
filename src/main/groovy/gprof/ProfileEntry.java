@@ -17,7 +17,7 @@ package gprof;
 
 public abstract class ProfileEntry {
 
-    private ProfileTime time;
+    private ProfileTime time = new ProfileTime(0);
 
     public void setTime(ProfileTime time) {
         this.time = time;
@@ -26,4 +26,5 @@ public abstract class ProfileEntry {
     public ProfileTime getTime() {
         return time;
     }
+
 }

@@ -60,11 +60,12 @@ public class ProfileGraphNormalizer {
                         ProfileMethodEntry method = new ProfileMethodEntry(call.getClassName(), call.getMethodName());
                         method.setTime(call.getTime());
                         graph = new ProfileGraphEntry(index, thread, method, indexTableStack.size() - 1);
-                        graph.setTime(call.getTime());
                         graphTable.put(index, graph);
                     }
                     ProfileMethodEntry method = graph.getMethod();
                     method.getCallEntries().add(call);
+                    graph.setTime(graph.getTime().plus(call.getTime()));
+                    graph.setCalls(graph.getCalls() + 1);
 
                     Map<String, Long> indexTable = new HashMap();
                     List childNames = new ArrayList();
@@ -73,12 +74,17 @@ public class ProfileGraphNormalizer {
                     }
                     for (ProfileCallTree.Node child : node.getChildren()) {
                         ProfileCallEntry childCall = (ProfileCallEntry) child.getData();
-                        if (!indexTable.containsKey(childCall.getName())) {
-                            long childIndex = ++lastIndex;
-                            float childTimePercent = childCall.getTime().nanoseconds() / call.getTime().nanoseconds();
-                            graph.addChild(new ProfileGraphEntry.Child(childIndex));
+                        if (childCall.getName().equals(call.getName())) {
+                            graph.setRecursiveCalls(graph.getRecursiveCalls() + 1);
+                            indexTable.put(childCall.getName(), index);
+                        } else {
+                            if (!indexTable.containsKey(childCall.getName())) {
+                                long childIndex = ++lastIndex;
+                                float childTimePercent = childCall.getTime().nanoseconds() / call.getTime().nanoseconds();
+                                graph.addChild(new ProfileGraphEntry.Child(childIndex));
+                                indexTable.put(childCall.getName(), childIndex);
+                            }
                             graph.setChildrenTime(graph.getChildrenTime().plus(childCall.getTime()));
-                            indexTable.put(childCall.getName(), childIndex);
                         }
                     }
                     indexTableStack.push(indexTable);
@@ -108,10 +114,6 @@ public class ProfileGraphNormalizer {
                     long index = indexTableStack.peek().get(call.getName());
                     ProfileGraphEntry graph = graphTable.get(index);
                     graph.setSelfTime(graph.getTime().minus(graph.getChildrenTime()));
-                    for (ProfileGraphEntry.Child graphChild : graph.getChildren()) {
-                        ProfileGraphEntry childRef = graphTable.get(graphChild.getIndex());
-                        graphChild.setTimePercent((float) (childRef.getTime().nanoseconds()) / graph.getTime().nanoseconds() * 100f);
-                    }
                 }
             }
         });
