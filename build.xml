@@ -44,6 +44,15 @@
     <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpath="${maven.ant.tasks.jar}" />
   </target>
 
+  <target name="-init" depends="-init-maven-tasks">
+    <artifact:dependencies pathId="build.classpath">
+      <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="2.1.3" />
+    </artifact:dependencies>
+    <taskdef name="groovy"
+             classname="org.codehaus.groovy.ant.Groovy"
+             classpathref="build.classpath"/>
+  </target>
+
   <target name="clean" description="Clean up build artifacts.">
     <delete dir="${build.dir}" />
     <delete dir="${dist.dir}" />
@@ -59,7 +68,7 @@
     <zip destfile="${dist.dir}/${id}-${version}-sources.jar" basedir="." includes="src/**" />
   </target>
 
-  <target name="javadoc" description="Create the javadoc archive." depends="-init-maven-tasks">
+  <target name="javadoc" description="Create the javadoc archive." depends="-init">
     <artifact:dependencies pathId="groovydoc.classpath">
       <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version.major}.${groovy.version.minor}" />
     </artifact:dependencies>
@@ -86,7 +95,7 @@
     </jar>
   </target>
 
-  <target name="compile" description="Compile the main code." depends="-init-maven-tasks">
+  <target name="compile" description="Compile the main code." depends="-init">
     <property name="groovy.version" value="${groovy.version.major}.${groovy.version.minor}" />
     <echo message="Compiling the main code with Groovy ${groovy.version}..." />
 
@@ -115,10 +124,22 @@
     <property name="groovy.version" value="${groovy.version.major}.${groovy.version.minor}" />
     <echo message="Compiling the test code with Groovy ${groovy.version}..." />
 
+    <groovy><![CDATA[
+      def groovyVersion = properties."groovy.version.major"
+      def spockVersion
+      if (groovyVersion >= "2.0") {
+        spockVersion = "0.7-groovy-2.0"
+      } else {
+        spockVersion = "0.7-groovy-$groovyVersion"
+      }
+      properties."spock.version" = spockVersion
+    ]]></groovy>
+
     <artifact:dependencies pathId="compile.classpath">
       <dependency groupId="org.codehaus.groovy" artifactId="groovy" version="${groovy.version}" />
       <dependency groupId="junit" artifactId="junit" version="4.8.2" />
       <dependency groupId="commons-cli" artifactId="commons-cli" version="1.2" />
+      <dependency groupId="org.spockframework" artifactId="spock-core" version="${spock.version}" />
     </artifact:dependencies>
 
     <property name="classes.test.dir" value="${build.dir}/test/classes" />
