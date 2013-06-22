@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof;
 
-import java.util.concurrent.Callable;
+public class CallGraphReport extends Report {
 
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Report profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
+    public CallGraphReport(CallTree callTree) {
+        super(callTree);
     }
 
-    static Report profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
+    @Override
+    public ReportPrinter getPrinter() {
+        return new CallGraphReportPrinter();
     }
+
+    @Override
+    public ReportNormalizer getNormalizer() {
+        return new CallGraphReportNormalizer();
+    }
+
 
 }

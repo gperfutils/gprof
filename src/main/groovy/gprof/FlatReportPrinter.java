@@ -18,23 +18,17 @@ package gprof;
 import java.io.PrintWriter;
 import java.util.*;
 
-public class ProfileFlatPrinter implements ProfilePrinter {
+public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
     private static String SP = "  ";
 
-    private List<ProfileMethodEntry> methodEntries;
-
-    public ProfileFlatPrinter(ProfileCallTree callTree) {
-        this.methodEntries = new ProfileFlatNormalizer().normalize(callTree);
+    public void print(List<FlatReportElement> elements, PrintWriter writer) {
+        print(elements, writer, new DefaultComparator());
     }
 
-    public void print(PrintWriter writer) {
-        print(writer, new DefaultComparator());
-    }
-
-    public void print(PrintWriter writer, Comparator comparator) {
-        Collections.sort(methodEntries, comparator);
-        List<Map<COLUMN, String>> rows = createRowValueList();
+    public void print(List<FlatReportElement> elements, PrintWriter writer, Comparator comparator) {
+        Collections.sort(elements, comparator);
+        List<Map<COLUMN, String>> rows = createRowValueList(elements);
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
         writeHeader(writer, columnSizeMap);
         writeRows(writer, rows, columnSizeMap);
@@ -94,18 +88,18 @@ public class ProfileFlatPrinter implements ProfilePrinter {
         return colSizeMap;
     }
 
-    private List<Map<COLUMN, String>> createRowValueList() {
-        List<Map<COLUMN, String>> rows = new ArrayList(methodEntries.size());
-        for (ProfileMethodEntry methodEntry : methodEntries) {
+    private List<Map<COLUMN, String>> createRowValueList(List<FlatReportElement> elements) {
+        List<Map<COLUMN, String>> rows = new ArrayList(elements.size());
+        for (FlatReportElement element : elements) {
             Map<COLUMN, String> row = new HashMap();
-            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", methodEntry.getPercent()));
-            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", methodEntry.getTime().milliseconds()));
-            row.put(COLUMN.CALLS, String.format("%d", methodEntry.getCallEntries().size()));
-            row.put(COLUMN.TIME_MIN, String.format("%.2f", methodEntry.getMinTime().milliseconds()));
-            row.put(COLUMN.TIME_MAX, String.format("%.2f", methodEntry.getMaxTime().milliseconds()));
-            row.put(COLUMN.TIME_AVG, String.format("%.2f", methodEntry.getTimePerCall().milliseconds()));
-            row.put(COLUMN.METHOD_NAME, methodEntry.getMethodName());
-            row.put(COLUMN.CLASS_NAME, methodEntry.getClassName());
+            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", element.getTimePercent()));
+            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime().milliseconds()));
+            row.put(COLUMN.CALLS, String.format("%d", element.getCalls()));
+            row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime().milliseconds()));
+            row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime().milliseconds()));
+            row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall().milliseconds()));
+            row.put(COLUMN.METHOD_NAME, element.getMethod().getMethodName());
+            row.put(COLUMN.CLASS_NAME, element.getMethod().getClassName());
             rows.add(row);
         }
         return rows;
@@ -131,17 +125,17 @@ public class ProfileFlatPrinter implements ProfilePrinter {
         }
     }
 
-    static class DefaultComparator implements Comparator<ProfileMethodEntry> {
+    static class DefaultComparator implements Comparator<FlatReportElement> {
 
         @Override
-        public int compare(ProfileMethodEntry o1, ProfileMethodEntry o2) {
+        public int compare(FlatReportElement o1, FlatReportElement o2) {
             int r = -(o1.getTime().compareTo(o2.getTime()));
             if (r == 0) {
-                r = -(((Integer) o1.getCallEntries().size()).compareTo(o2.getCallEntries().size()));
+                r = -(((Long) o1.getCalls()).compareTo(o2.getCalls()));
                 if (r == 0) {
-                    r = o1.getClassName().compareTo(o2.getClassName());
+                    r = o1.getMethod().getClassName().compareTo(o2.getMethod().getClassName());
                     if (r == 0) {
-                        r = o1.getMethodName().compareTo(o2.getMethodName());
+                        r = o1.getMethod().getMethodName().compareTo(o2.getMethod().getMethodName());
                     }
                 }
             }

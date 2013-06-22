@@ -1,20 +1,17 @@
 package gprof;
 
-import groovy.lang.*;
-
-import java.beans.IntrospectionException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class ProfileInterceptor implements Interceptor {
+public class CallInterceptor implements groovy.lang.Interceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
-    private ProfileCallTree tree;
-    private ProfileMethodFilter methodFilter;
-    private ProfileThreadFilter threadFilter;
+    private CallTree tree;
+    private MethodCallFilter methodFilter;
+    private ThreadRunFilter threadFilter;
 
-    public ProfileInterceptor(ProfileMethodFilter methodFilter, ProfileThreadFilter threadFilter) {
+    public CallInterceptor(MethodCallFilter methodFilter, ThreadRunFilter threadFilter) {
         interceptors = new ConcurrentHashMap<Thread, LocalInterceptor>();
         this.methodFilter = methodFilter;
         this.threadFilter = threadFilter;
@@ -48,11 +45,11 @@ public class ProfileInterceptor implements Interceptor {
         return getLocalInterceptor().doInvoke();
     }
 
-    public ProfileCallTree getTree() {
+    public CallTree getTree() {
         return makeTree();
     }
 
-    ProfileCallTree makeTree() {
+    CallTree makeTree() {
         // Wait for all the child threads to die.
         Thread profThread = Thread.currentThread();
         for (Thread thread : interceptors.keySet()) {
@@ -64,12 +61,12 @@ public class ProfileInterceptor implements Interceptor {
                 }
             }
         }
-        ProfileCallTree tree = new ProfileCallTree(profThread);
+        CallTree tree = new CallTree(profThread);
         for (LocalInterceptor interceptor : interceptors.values()) {
-            ProfileCallTree theTree = interceptor.getTree();
-            ProfileThreadEntry theThread = (ProfileThreadEntry) theTree.getRoot().getData();
+            CallTree theTree = interceptor.getTree();
+            ThreadRunInfo theThread = (ThreadRunInfo) theTree.getRoot().getData();
             if (theThread.equals(profThread)) {
-                for (ProfileCallTree.Node child : theTree.getRoot().getChildren()) {
+                for (CallTree.Node child : theTree.getRoot().getChildren()) {
                     tree.getRoot().addChild(child);
                 }
             } else {
@@ -79,15 +76,15 @@ public class ProfileInterceptor implements Interceptor {
         return tree;
     }
 
-    static class LocalInterceptor implements Interceptor {
+    static class LocalInterceptor implements groovy.lang.Interceptor {
 
-        private ProfileCallTree tree;
-        private ProfileCallTree tmpTree;
-        private Stack<ProfileCallTree.Node> nodeStack;
+        private CallTree tree;
+        private CallTree tmpTree;
+        private Stack<CallTree.Node> nodeStack;
         private Stack<Long> timeStack;
         private boolean ignoring;
-        private ProfileMethodFilter methodFilter;
-        private ProfileThreadFilter threadFilter;
+        private MethodCallFilter methodFilter;
+        private ThreadRunFilter threadFilter;
 
         private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null, null) {
             @Override
@@ -100,8 +97,8 @@ public class ProfileInterceptor implements Interceptor {
             }
         };
 
-        public LocalInterceptor(ProfileMethodFilter methodFilter, ProfileThreadFilter threadFilter) {
-            tmpTree = new ProfileCallTree(Thread.currentThread());
+        public LocalInterceptor(MethodCallFilter methodFilter, ThreadRunFilter threadFilter) {
+            tmpTree = new CallTree(Thread.currentThread());
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
@@ -121,8 +118,8 @@ public class ProfileInterceptor implements Interceptor {
 
         @Override
         public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-            ProfileCallTree.Node node = new ProfileCallTree.Node(new ProfileCallEntry(classNameOf(object), methodName));
-            ProfileCallTree.Node parentNode = nodeStack.peek();
+            CallTree.Node node = new CallTree.Node(new MethodCallInfo(classNameOf(object), methodName));
+            CallTree.Node parentNode = nodeStack.peek();
             node.setParent(parentNode);
             parentNode.addChild(node);
 
@@ -134,8 +131,8 @@ public class ProfileInterceptor implements Interceptor {
         @Override
         public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
             long time = System.nanoTime() - timeStack.pop();
-            ProfileCallTree.Node node = nodeStack.pop();
-            node.getData().setTime(new ProfileTime(time));
+            CallTree.Node node = nodeStack.pop();
+            node.getData().setTime(new CallTime(time));
             return result;
         }
 
@@ -144,38 +141,38 @@ public class ProfileInterceptor implements Interceptor {
             return true;
         }
 
-        public ProfileCallTree getTree() {
+        public CallTree getTree() {
             if (tree == null) {
                 tree = makeTree();
             }
             return tree;
         }
 
-        ProfileCallTree makeTree() {
-            final ProfileCallTree tree = tmpTree;
-            tree.visit(new ProfileCallTree.NodeVisitor() {
+        CallTree makeTree() {
+            final CallTree tree = tmpTree;
+            tree.visit(new CallTree.NodeVisitor() {
                 @Override
-                public void visit(ProfileCallTree.Node node) {
-                    ProfileEntry entry = node.getData();
-                    ProfileCallTree.Node parentNode = node.getParent();
+                public void visit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    CallTree.Node parentNode = node.getParent();
                     if (node != tree.getRoot()) {
-                        ProfileEntry parentCall = parentNode.getData();
-                        parentCall.setTime(parentCall.getTime().minus(entry.getTime()));
+                        CallInfo parentCall = parentNode.getData();
+                        parentCall.setTime(parentCall.getTime().minus(call.getTime()));
                     }
                 }
             });
-            tree.visit(new ProfileCallTree.NodeVisitor() {
+            tree.visit(new CallTree.NodeVisitor() {
                 @Override
-                public void visit(ProfileCallTree.Node node) { }
+                public void visit(CallTree.Node node) { }
                 @Override
-                public void exit(ProfileCallTree.Node node) {
-                    ProfileEntry entry = node.getData();
-                    if (entry instanceof ProfileCallEntry) {
-                        ProfileCallEntry call = (ProfileCallEntry) entry;
-                        if (!methodFilter.accept(call.getClassName(), call.getMethodName())) {
-                            ProfileCallTree.Node parentNode = node.getParent();
+                public void exit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    if (call instanceof MethodCallInfo) {
+                        MethodCallInfo methodCall = (MethodCallInfo) call;
+                        if (!methodFilter.accept(methodCall.getMethod())) {
+                            CallTree.Node parentNode = node.getParent();
                             parentNode.removeChild(node);
-                            for (ProfileCallTree.Node child : node.getChildren()) {
+                            for (CallTree.Node child : node.getChildren()) {
                                 parentNode.addChild(child);
                             }
                         }

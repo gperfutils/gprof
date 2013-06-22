@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-class ProfileCollections {
+class Utils {
 
     static HashMap hashMap(Object...kvs) {
         HashMap hashMap = new HashMap();

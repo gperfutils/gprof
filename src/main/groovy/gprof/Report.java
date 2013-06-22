@@ -16,38 +16,29 @@
 package gprof;
 
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.List;
 
-public class Profile {
+public abstract class Report {
 
-    private ProfileCallTree callTree;
-    private ProfilePrinter printer;
+    private List<? extends ReportElement> elements;
+    protected CallTree callTree;
 
-    public Profile(ProfileCallTree callTree) {
+    public Report(CallTree callTree) {
         this.callTree = callTree;
     }
 
-    public ProfileCallTree getCallTree() {
-        return callTree;
-    }
-
-    public ProfilePrinter getPrinter() {
-        if (printer == null) {
-            printer = new ProfileFlatPrinter(callTree);
-        }
-        return printer;
-    }
-
-    public void prettyPrint() {
-        prettyPrint(new PrintWriter(System.out));
-    }
+    public abstract ReportPrinter getPrinter();
+    public abstract ReportNormalizer getNormalizer();
 
     public void prettyPrint(PrintWriter writer) {
-        prettyPrint(writer);
+        getPrinter().print(getElements(), writer);
     }
 
-    public void prettyPrint(PrintWriter writer, Comparator comparator) {
-        getPrinter().print(writer, comparator);
+    public List<? extends ReportElement> getElements() {
+        if (elements == null) {
+            elements = getNormalizer().normalize(callTree);
+        }
+        return elements;
     }
 
 }

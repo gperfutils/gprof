@@ -15,26 +15,13 @@
  */
 package gprof;
 
-import java.util.ArrayList;
-import java.util.List;
+public class MethodInfo {
 
-public class ProfileMethodEntry extends ProfileEntry {
+    private String className, methodName;
 
-    private String className;
-    private String methodName;
-    private String name;
-    private List<ProfileCallEntry> callEntries;
-    private double percent;
-    private ProfileTime time;
-    private ProfileTime minTime;
-    private ProfileTime maxTime;
-    private ProfileTime timePerCall;
-
-    public ProfileMethodEntry(String className, String methodName) {
+    public MethodInfo(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
-        this.name = className + "." + methodName;
-        this.callEntries = new ArrayList();
     }
 
     public String getClassName() {
@@ -46,47 +33,6 @@ public class ProfileMethodEntry extends ProfileEntry {
     }
 
     public String getName() {
-        return name;
-    }
-
-    public List<ProfileCallEntry> getCallEntries() {
-        return callEntries;
-    }
-
-    public ProfileTime getTimePerCall() {
-        return timePerCall;
-    }
-
-    public ProfileTime getMinTime() {
-        return minTime;
-    }
-
-    public void setMinTime(ProfileTime minTime) {
-        this.minTime = minTime;
-    }
-
-    public ProfileTime getMaxTime() {
-        return maxTime;
-    }
-
-    public void setMaxTime(ProfileTime maxTime) {
-        this.maxTime = maxTime;
-    }
-
-    public void setTimePerCall(ProfileTime timePerCall) {
-        this.timePerCall = timePerCall;
-    }
-
-    public double getPercent() {
-        return percent;
-    }
-
-    public void setPercent(double percent) {
-        this.percent = percent;
-    }
-
-    @Override
-    public String toString() {
         return className + "." + methodName;
     }
 
@@ -95,7 +41,7 @@ public class ProfileMethodEntry extends ProfileEntry {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ProfileMethodEntry that = (ProfileMethodEntry) o;
+        MethodInfo that = (MethodInfo) o;
 
         if (className != null ? !className.equals(that.className) : that.className != null) return false;
         if (methodName != null ? !methodName.equals(that.methodName) : that.methodName != null) return false;
@@ -109,4 +55,13 @@ public class ProfileMethodEntry extends ProfileEntry {
         result = 31 * result + (methodName != null ? methodName.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "MethodInfo{" +
+                "className='" + className + '\'' +
+                ", methodName='" + methodName + '\'' +
+                '}';
+    }
+
 }

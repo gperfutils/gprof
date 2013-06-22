@@ -13,25 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof;
 
-import java.util.concurrent.Callable;
-
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Report profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
-    }
-
-    static Report profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
-    }
-
+public interface ReportElement {
 }

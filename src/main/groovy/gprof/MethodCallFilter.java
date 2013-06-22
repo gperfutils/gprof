@@ -13,25 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof;
 
-import java.util.concurrent.Callable;
+public class MethodCallFilter extends CallFilter {
 
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Report profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
-    }
-
-    static Report profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
+    public boolean accept(MethodInfo method) {
+        return accept(method.getName());
     }
 
 }

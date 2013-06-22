@@ -15,10 +15,32 @@
  */
 package gprof;
 
-public class ProfileMethodFilter extends ProfileFilter {
+public class ProxyReport extends Report {
 
-    public boolean accept(String className, String methodName) {
-        return accept(className + "." + methodName);
+    private Report delegate;
+
+    public ProxyReport(CallTree callTree) {
+        super(callTree);
+    }
+
+    public Report getFlat() {
+        delegate = new FlatReport(callTree);
+        return this;
+    }
+
+    public Report getCallGraph() {
+        delegate = new CallGraphReport(callTree);
+        return this;
+    }
+
+    @Override
+    public ReportPrinter getPrinter() {
+        return delegate.getPrinter();
+    }
+
+    @Override
+    public ReportNormalizer getNormalizer() {
+        return delegate.getNormalizer();
     }
 
 }

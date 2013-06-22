@@ -17,47 +17,47 @@ package gprof
 
 import spock.lang.Specification
 
-@Mixin(Mock)
-class GraphNormalizerTest extends Specification {
+@Mixin(TestHelper)
+class CallGraphReportNormalizerTest extends Specification {
 
-    def norm(ProfileCallTree tree) {
-        new ProfileGraphNormalizer().normalize(tree)
+    def norm(CallTree tree) {
+        new CallGraphReportNormalizer().normalize(tree)
     }
 
-    def graphMock(args) {
-        def ge = new ProfileGraphEntry(args.index, args.thread, args.method, args.depth)
+    def element(args) {
+        def ge = new CallGraphReportElement(args.index, args.thread, args.method, args.depth)
         ge.timePercent = args.timePercent
-        ge.selfTime = new ProfileTime(args.selfTime)
-        ge.childrenTime = new ProfileTime(args.childrenTime)
+        ge.selfTime = new CallTime(args.selfTime)
+        ge.childrenTime = new CallTime(args.childrenTime)
         ge.time = ge.selfTime + ge.childrenTime
         ge.calls = args.calls
         ge.recursiveCalls = args.recursiveCalls
         args.children.each {
-            ge.addChild(new ProfileGraphEntry.Child(it))
+            ge.addChild(new CallGraphReportElement.Child(it))
         }
         ge
     }
 
     def "Recursive calls are counted apart from non-recursive calls"() {
         when:
-        def graphList = norm(treeMock(
-            methodNodeMock("A", "a", 100,
-                methodNodeMock("A", "a", 100,
-                    methodNodeMock("A", "a", 100)
+        def graphList = norm(tree(
+            methodCallNode("A", "a", 100,
+                methodCallNode("A", "a", 100,
+                    methodCallNode("A", "a", 100)
                 )
             ),
-            methodNodeMock("A", "a", 100,
-                methodNodeMock("A", "a", 100,
-                    methodNodeMock("A", "a", 100)
+            methodCallNode("A", "a", 100,
+                methodCallNode("A", "a", 100,
+                    methodCallNode("A", "a", 100)
                 )
             )
         ))
         then:
         graphList == [
-            graphMock(
+            element(
                 index: 1,
-                thread: threadEntry(),
-                method: methodEntry("A", "a"),
+                thread: thread(),
+                method: method("A", "a"),
                 depth: 0,
                 timePercent: 100,
                 selfTime: 100 * 6,
@@ -71,22 +71,22 @@ class GraphNormalizerTest extends Specification {
 
     def "Method calls have the same caller are unified"() {
         when:
-        def graphList = norm(treeMock(
-            methodNodeMock("A", "a", 50 + 100 * 2,
-                methodNodeMock("A", "b", 100),
-                methodNodeMock("A", "b", 100),
+        def elements = norm(tree(
+            methodCallNode("A", "a", 50 + 100 * 2,
+                methodCallNode("A", "b", 100),
+                methodCallNode("A", "b", 100),
             ),
-            methodNodeMock("A", "a", 50 + 100 * 1,
-                methodNodeMock("A", "b", 100),
+            methodCallNode("A", "a", 50 + 100 * 1,
+                methodCallNode("A", "b", 100),
             ),
         ))
 
         then:
-        graphList == [
-            graphMock(
+        def expected = [
+            element(
                 index: 1,
-                thread: threadEntry(),
-                method: methodEntry("A", "a"),
+                thread: thread(),
+                method: method("A", "a"),
                 depth: 0,
                 timePercent: 100,
                 selfTime: 50 * 2,
@@ -95,10 +95,10 @@ class GraphNormalizerTest extends Specification {
                 recursiveCalls: 0,
                 children: [2]
             ),
-            graphMock(
+            element(
                 index: 2,
-                thread: threadEntry(),
-                method: methodEntry("A", "b"),
+                thread: thread(),
+                method: method("A", "b"),
                 depth: 1,
                 timePercent: 100 * 3 / (50 * 2 + 100 * 3) * 100,
                 selfTime: 100 * 3,
@@ -108,6 +108,7 @@ class GraphNormalizerTest extends Specification {
                 children: []
             ),
         ]
+        elements == expected
     }
 
 }

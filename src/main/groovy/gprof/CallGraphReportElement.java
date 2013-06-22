@@ -18,7 +18,7 @@ package gprof;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileGraphEntry extends ProfileEntry {
+public class CallGraphReportElement implements ReportElement {
 
     public static class Child {
 
@@ -58,17 +58,18 @@ public class ProfileGraphEntry extends ProfileEntry {
     }
 
     private long index;
+    private ThreadInfo thread;
+    private MethodInfo method;
+    private int depth;
     private float timePercent;
-    private ProfileTime selfTime = new ProfileTime(0);
-    private ProfileTime childrenTime = new ProfileTime(0);
-    private ProfileThreadEntry thread;
-    private ProfileMethodEntry method;
+    private CallTime time = new CallTime(0);
+    private CallTime selfTime = new CallTime(0);
+    private CallTime childrenTime = new CallTime(0);
     private long calls = 0;
     private long recursiveCalls = 0;
     private List<Child> children = new ArrayList(0);
-    private int depth;
 
-    public ProfileGraphEntry(long index, ProfileThreadEntry thread, ProfileMethodEntry method, int depth) {
+    public CallGraphReportElement(long index, ThreadInfo thread, MethodInfo method, int depth) {
         this.index = index;
         this.thread = thread;
         this.method = method;
@@ -87,27 +88,35 @@ public class ProfileGraphEntry extends ProfileEntry {
         return timePercent;
     }
 
-    public ProfileTime getSelfTime() {
+    public void setTime(CallTime time) {
+        this.time = time;
+    }
+
+    public CallTime getTime() {
+        return time;
+    }
+
+    public CallTime getSelfTime() {
         return selfTime;
     }
 
-    public void setSelfTime(ProfileTime selfTime) {
+    public void setSelfTime(CallTime selfTime) {
         this.selfTime = selfTime;
     }
 
-    public ProfileTime getChildrenTime() {
+    public CallTime getChildrenTime() {
         return childrenTime;
     }
 
-    public void setChildrenTime(ProfileTime childrenTime) {
+    public void setChildrenTime(CallTime childrenTime) {
         this.childrenTime = childrenTime;
     }
 
-    public ProfileThreadEntry getThread() {
+    public ThreadInfo getThread() {
         return thread;
     }
 
-    public ProfileMethodEntry getMethod() {
+    public MethodInfo getMethod() {
         return method;
     }
 
@@ -141,14 +150,14 @@ public class ProfileGraphEntry extends ProfileEntry {
 
     @Override
     public String toString() {
-        return "ProfileGraphEntry{" +
+        return "CallGraphReportElement{" +
                 "index=" + index +
                 ", timePercent=" + timePercent +
                 ", selfTime=" + selfTime +
                 ", childrenTime=" + childrenTime +
                 ", thread=" + thread +
                 ", method=" + method +
-                ", calls=" + calls +
+                ", calls=" + getCalls() +
                 ", recursiveCalls=" + recursiveCalls +
                 ", children=" + children +
                 ", depth=" + depth +
@@ -160,9 +169,9 @@ public class ProfileGraphEntry extends ProfileEntry {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ProfileGraphEntry that = (ProfileGraphEntry) o;
+        CallGraphReportElement that = (CallGraphReportElement) o;
 
-        if (calls != that.calls) return false;
+        if (getCalls() != that.getCalls()) return false;
         if (recursiveCalls != that.recursiveCalls) return false;
         if (depth != that.depth) return false;
         if (index != that.index) return false;
@@ -184,7 +193,7 @@ public class ProfileGraphEntry extends ProfileEntry {
         result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
         result = 31 * result + (thread != null ? thread.hashCode() : 0);
         result = 31 * result + (method != null ? method.hashCode() : 0);
-        result = 31 * result + (int) (calls ^ (calls >>> 32));
+        result = 31 * result + (int) (getCalls() ^ (getCalls() >>> 32));
         result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
         result = 31 * result + (children != null ? children.hashCode() : 0);
         result = 31 * result + depth;

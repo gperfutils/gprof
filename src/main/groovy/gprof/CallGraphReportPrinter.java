@@ -18,26 +18,28 @@ package gprof;
 import java.io.PrintWriter;
 import java.util.*;
 
-public class ProfileGraphPrinter implements ProfilePrinter {
+public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElement> {
 
     private static Character SEPARATOR_CHAR = '-';
     private static String COLUMN_SEPARATOR = "  ";
 
-    private List<ProfileGraphEntry> entries;
-
-    public ProfileGraphPrinter(ProfileCallTree callTree) {
-        entries = new ProfileGraphNormalizer().normalize(callTree);
+    private String formatCalls(CallGraphReportElement element) {
+        if (element.getRecursiveCalls() > 0) {
+            return String.format("%d+%d",
+                    element.getCalls() - element.getRecursiveCalls(), element.getRecursiveCalls());
+        }
+        return String.format("%d", element.getCalls());
     }
 
     @Override
-    public void print(PrintWriter writer) {
-        print(writer, null);
+    public void print(List<CallGraphReportElement> elements, PrintWriter writer) {
+        print(elements, writer, null);
     }
 
     @Override
-    public void print(PrintWriter writer, Comparator comparator) {
-        Map<Long, ProfileGraphEntry> graphTable = new HashMap();
-        for (ProfileGraphEntry entry : entries) {
+    public void print(List<CallGraphReportElement> elements, PrintWriter writer, Comparator comparator) {
+        Map<Long, CallGraphReportElement> graphTable = new HashMap();
+        for (CallGraphReportElement entry : elements) {
             graphTable.put(entry.getIndex(), entry);
         }
 
@@ -47,40 +49,40 @@ public class ProfileGraphPrinter implements ProfilePrinter {
             header.put(col, col.toString());
         }
         lines.add(header);
-        for (ProfileGraphEntry entry : entries) {
+        for (CallGraphReportElement element : elements) {
             lines.add(
-                ProfileCollections.hashMap(
-                    Column.INDEX,
-                        String.format("[%d]", entry.getIndex()),
-                    Column.TOTAL_TIME_PERCENT,
-                        String.format("%.1f", entry.getTimePercent()),
-                    Column.SELF_TIME,
-                        String.format("%.2f", entry.getSelfTime().microseconds()),
-                    Column.CHILDREN_TIME,
-                        String.format("%.2f", entry.getChildrenTime().microseconds()),
-                    Column.CALLS,
-                        String.format("%d", entry.getMethod().getCallEntries().size()),
-                    Column.NAME,
-                        String.format("%s.%s [%d]",
-                            entry.getMethod().getClassName(), entry.getMethod().getMethodName(), entry.getIndex())));
-
-            for (ProfileGraphEntry.Child child : entry.getChildren()) {
-                ProfileGraphEntry childRef = graphTable.get(child.getIndex());
-                lines.add(
-                    ProfileCollections.hashMap(
+                Utils.hashMap(
                         Column.INDEX,
-                            "",
+                        String.format("[%d]", element.getIndex()),
                         Column.TOTAL_TIME_PERCENT,
-                            "",
+                        String.format("%.1f", element.getTimePercent()),
                         Column.SELF_TIME,
-                            String.format("%.2f", childRef.getSelfTime().microseconds()),
+                        String.format("%.2f", element.getSelfTime().microseconds()),
                         Column.CHILDREN_TIME,
-                            String.format("%.2f", childRef.getChildrenTime().microseconds()),
+                        String.format("%.2f", element.getChildrenTime().microseconds()),
                         Column.CALLS,
-                            String.format("%d", childRef.getMethod().getCallEntries().size()),
+                        formatCalls(element),
                         Column.NAME,
+                        String.format("%s.%s [%d]",
+                                element.getMethod().getClassName(), element.getMethod().getMethodName(), element.getIndex())));
+
+            for (CallGraphReportElement.Child child : element.getChildren()) {
+                CallGraphReportElement childRef = graphTable.get(child.getIndex());
+                lines.add(
+                    Utils.hashMap(
+                            Column.INDEX,
+                            "",
+                            Column.TOTAL_TIME_PERCENT,
+                            "",
+                            Column.SELF_TIME,
+                            String.format("%.2f", childRef.getSelfTime().microseconds()),
+                            Column.CHILDREN_TIME,
+                            String.format("%.2f", childRef.getChildrenTime().microseconds()),
+                            Column.CALLS,
+                            formatCalls(childRef),
+                            Column.NAME,
                             String.format("    %s.%s [%d]",
-                                childRef.getMethod().getClassName(), childRef.getMethod().getMethodName(), child.getIndex())));
+                                    childRef.getMethod().getClassName(), childRef.getMethod().getMethodName(), child.getIndex())));
             }
             lines.add(SEPARATOR_CHAR);
         }
@@ -145,7 +147,7 @@ public class ProfileGraphPrinter implements ProfilePrinter {
                 for (Column col : columns) {
                     vs.add(cols.get(col));
                 }
-                writer.println(ProfileCollections.join(vs, "  "));
+                writer.println(Utils.join(vs, "  "));
             } else if (line == SEPARATOR_CHAR) {
                 writer.println(separator);
             }

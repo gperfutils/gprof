@@ -15,11 +15,11 @@
  */
 package gprof;
 
-public class ProfileTime implements Comparable<ProfileTime> {
+public class CallTime implements Comparable<CallTime> {
 
     private long ns;
 
-    public ProfileTime(long ns) {
+    public CallTime(long ns) {
         this.ns = ns;
     }
 
@@ -39,33 +39,33 @@ public class ProfileTime implements Comparable<ProfileTime> {
         return milliseconds() / 1000;
     }
 
-    public ProfileTime plus(ProfileTime other) {
-        return new ProfileTime(nanoseconds() + other.nanoseconds());
+    public CallTime plus(CallTime other) {
+        return new CallTime(nanoseconds() + other.nanoseconds());
     }
 
-    public ProfileTime minus(ProfileTime other) {
-        return new ProfileTime(nanoseconds() - other.nanoseconds());
+    public CallTime minus(CallTime other) {
+        return new CallTime(nanoseconds() - other.nanoseconds());
     }
 
-    public ProfileTime div(ProfileTime other) {
-        return new ProfileTime(nanoseconds() / other.nanoseconds());
+    public CallTime div(CallTime other) {
+        return new CallTime(nanoseconds() / other.nanoseconds());
     }
 
-    public ProfileTime div(int i) {
-        return new ProfileTime(nanoseconds() / i);
+    public CallTime div(long n) {
+        return new CallTime(nanoseconds() / n);
     }
 
-    public ProfileTime multiply(int i) {
-        return new ProfileTime(nanoseconds() * i);
+    public CallTime multiply(long n) {
+        return new CallTime(nanoseconds() * n);
     }
 
-    public int compareTo(ProfileTime another) {
+    public int compareTo(CallTime another) {
         return ((Long) nanoseconds()).compareTo(another.nanoseconds());
     }
 
     @Override
     public String toString() {
-        return "ProfileTime{" +
+        return "CallTime{" +
                 "nanoseconds=" + ns +
                 '}';
     }
@@ -75,7 +75,7 @@ public class ProfileTime implements Comparable<ProfileTime> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ProfileTime that = (ProfileTime) o;
+        CallTime that = (CallTime) o;
 
         if (ns != that.ns) return false;
 

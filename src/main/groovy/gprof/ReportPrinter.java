@@ -17,11 +17,12 @@ package gprof;
 
 import java.io.PrintWriter;
 import java.util.Comparator;
+import java.util.List;
 
-public interface ProfilePrinter {
+public interface ReportPrinter<E extends ReportElement> {
 
-    public void print(PrintWriter writer);
+    void print(List<E> elements, PrintWriter writer);
 
-    public void print(PrintWriter writer, Comparator comparator);
+    void print(List<E> elements, PrintWriter writer, Comparator comparator);
 
 }

@@ -15,10 +15,18 @@
  */
 package gprof;
 
-public class ProfileThreadFilter extends ProfileFilter {
+public class FlatReport extends Report {
 
-    public boolean accept(Thread thread) {
-        return accept(thread.getName());
+    public FlatReport(CallTree callTree) {
+        super(callTree);
+    }
+
+    public ReportPrinter getPrinter() {
+        return new FlatReportPrinter();
+    }
+
+    public ReportNormalizer getNormalizer() {
+        return new FlatReportNormalizer();
     }
 
 }

@@ -15,17 +15,10 @@
  */
 package gprof;
 
-import groovy.lang.MetaClass;
-import groovy.lang.MetaClassRegistry;
-import groovy.lang.ProxyMetaClass;
+public class ThreadRunFilter extends CallFilter {
 
-import java.beans.IntrospectionException;
-
-public class ProfileMetaClass extends ProxyMetaClass {
-
-    public ProfileMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee)
-            throws IntrospectionException {
-        super(registry, theClass, adaptee);
+    public boolean accept(Thread thread) {
+        return accept(thread.getName());
     }
 
 }

@@ -15,16 +15,16 @@
  */
 package gprof;
 
-public abstract class ProfileEntry {
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassRegistry;
 
-    private ProfileTime time = new ProfileTime(0);
+import java.beans.IntrospectionException;
 
-    public void setTime(ProfileTime time) {
-        this.time = time;
-    }
+public class ProxyMetaClass extends groovy.lang.ProxyMetaClass {
 
-    public ProfileTime getTime() {
-        return time;
+    public ProxyMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee)
+            throws IntrospectionException {
+        super(registry, theClass, adaptee);
     }
 
 }

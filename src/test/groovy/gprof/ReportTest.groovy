@@ -13,32 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof
 
-public class ProfileCallEntry extends ProfileEntry {
+import spock.lang.Specification
 
-    private String className;
-    private String methodName;
+class ReportTest extends Specification {
 
-    public ProfileCallEntry(String className, String methodName) {
-        this.className = className;
-        this.methodName = methodName;
+    def "format"() {
+        when:
+        def r = profile {}
+
+        then:
+        CallGraphReportPrinter == r.callGraph.printer.class
+        FlatReportPrinter == r.flat.printer.class
     }
 
-    public String getClassName() {
-        return className;
-    }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public String getName() {
-        return className + "." + methodName;
-    }
-
-    @Override
-    public String toString() {
-        return getName();
-    }
 }

@@ -15,21 +15,25 @@
  */
 package gprof;
 
-public class ProfileThreadEntry extends ProfileEntry {
+public class ThreadRunInfo extends CallInfo {
 
-    private Thread thread;
+    private ThreadInfo thread;
 
-    public ProfileThreadEntry(Thread thread) {
+    public ThreadRunInfo(Thread thread) {
+        this(new ThreadInfo(thread.getName(), thread.getId()));
+    }
+
+    public ThreadRunInfo(ThreadInfo thread) {
         this.thread = thread;
     }
 
-    public Thread getThread() {
+    public ThreadInfo getThread() {
         return thread;
     }
 
     @Override
     public String toString() {
-        return "ProfileThreadEntry{" +
+        return "ThreadRunInfo{" +
                 "thread=" + thread +
                 '}';
     }
@@ -39,7 +43,7 @@ public class ProfileThreadEntry extends ProfileEntry {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ProfileThreadEntry that = (ProfileThreadEntry) o;
+        ThreadRunInfo that = (ThreadRunInfo) o;
 
         if (thread != null ? !thread.equals(that.thread) : that.thread != null) return false;
 
