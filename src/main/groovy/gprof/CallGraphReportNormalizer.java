@@ -29,9 +29,9 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
 
         callTree.visit(new CallTree.NodeVisitor() {
             Stack<Map<MethodInfo, Long>> indexTableStack = new Stack();
+            Stack<Long> parentStack = new Stack();
             long lastIndex = 0;
             ThreadInfo thread;
-            Stack<Long> indexStack = new Stack();
             @Override
             public void visit(CallTree.Node node) {
                 CallInfo call = node.getData();
@@ -58,16 +58,25 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
 
                     CallGraphReportElement element = elementTable.get(index);
                     if (element == null) {
-                        element = new CallGraphReportElement(index, thread, methodCall.getMethod(), indexTableStack.size() - 1);
+                        element = new CallGraphReportElement(
+                                index, thread, methodCall.getMethod(), indexTableStack.size() - 1);
                         elementTable.put(index, element);
                     }
-                    MethodInfo method = element.getMethod();
                     element.setCalls(element.getCalls() + 1);
                     element.setTime(element.getTime().plus(methodCall.getTime()));
 
+                    CallGraphReportElement.Parent parent;
+                    long parentIndex = parentStack.isEmpty() ? 0 : parentStack.peek();
+                    parent = element.getParents().get(parentIndex);
+                    if (parent == null) {
+                        parent = new CallGraphReportElement.Parent(parentIndex);
+                        element.addParent(parent);
+                    }
+                    parent.setCalls(parent.getCalls() + 1);
+                    parent.setTime(parent.getTime().plus(methodCall.getTime()));
+
                     Map<MethodInfo, Long> indexTable = new HashMap();
-                    List childNames = new ArrayList();
-                    for (CallGraphReportElement.Child child : element.getChildren()) {
+                    for (CallGraphReportElement.Child child : element.getChildren().values()) {
                         indexTable.put(elementTable.get(child.getIndex()).getMethod(), child.getIndex());
                     }
                     for (CallTree.Node child : node.getChildren()) {
@@ -78,13 +87,14 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                         } else {
                             if (!indexTable.containsKey(childMethodCall.getMethod())) {
                                 long childIndex = ++lastIndex;
-                                float childTimePercent = childMethodCall.getTime().nanoseconds() / methodCall.getTime().nanoseconds();
                                 element.addChild(new CallGraphReportElement.Child(childIndex));
                                 indexTable.put(childMethodCall.getMethod(), childIndex);
                             }
+                            parent.setChildrenTime(parent.getChildrenTime().plus(childMethodCall.getTime()));
                             element.setChildrenTime(element.getChildrenTime().plus(childMethodCall.getTime()));
                         }
                     }
+                    parentStack.push(index);
                     indexTableStack.push(indexTable);
                 }
             }
@@ -96,22 +106,19 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                 if (node.getData() instanceof ThreadRunInfo) {
                     ThreadRunInfo threadRun = (ThreadRunInfo) node.getData();
                     long totalTime = 0;
-                    for (CallGraphReportElement graph : elementTable.values()) {
-                        if (graph.getThread().equals(threadRun.getThread())) {
-                            totalTime += graph.getSelfTime().nanoseconds();
+                    for (CallGraphReportElement element : elementTable.values()) {
+                        if (element.getThread().equals(threadRun.getThread())) {
+                            totalTime += element.getSelfTime().nanoseconds();
                         }
                     }
                     threadRun.setTime(new CallTime(totalTime));
-                    for (CallGraphReportElement graph : elementTable.values()) {
-                        if (graph.getThread().equals(threadRun.getThread())) {
-                            graph.setTimePercent(((float) graph.getTime().nanoseconds()) / threadRun.getTime().nanoseconds() * 100f);
+                    for (CallGraphReportElement element : elementTable.values()) {
+                        if (element.getThread().equals(threadRun.getThread())) {
+                            element.setTimePercent(((float) element.getTime().nanoseconds()) / threadRun.getTime().nanoseconds() * 100f);
                         }
                     }
                 } else if (node.getData() instanceof MethodCallInfo) {
-                    MethodCallInfo call = (MethodCallInfo) node.getData();
-                    long index = indexTableStack.peek().get(call.getMethod());
-                    CallGraphReportElement graph = elementTable.get(index);
-                    graph.setSelfTime(graph.getTime().minus(graph.getChildrenTime()));
+                    parentStack.pop();
                 }
             }
         });

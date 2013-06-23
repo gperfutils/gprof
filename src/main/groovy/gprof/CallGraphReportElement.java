@@ -15,15 +15,94 @@
  */
 package gprof;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class CallGraphReportElement implements ReportElement {
-
-    public static class Child {
-
+    
+    public static class Parent {
+        
         private long index;
+        private CallTime time = new CallTime(0);
+        private CallTime childrenTime = new CallTime(0);
+        private long calls;
+        
+        public Parent(long index) {
+            this.index = index;
+        }
 
+        public CallTime getTime() {
+            return time;
+        }
+
+        public void setTime(CallTime time) {
+            this.time = time;
+        }
+
+        public CallTime getSelfTime() {
+            return time.minus(childrenTime);
+        }
+
+        public CallTime getChildrenTime() {
+            return childrenTime;
+        }
+
+        public void setChildrenTime(CallTime childrenTime) {
+            this.childrenTime = childrenTime;
+        }
+
+        public long getCalls() {
+            return calls;
+        }
+
+        public void setCalls(long calls) {
+            this.calls = calls;
+        }
+
+        public long getIndex() {
+            return index;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Parent parent = (Parent) o;
+
+            if (calls != parent.calls) return false;
+            if (index != parent.index) return false;
+            if (childrenTime != null ? !childrenTime.equals(parent.childrenTime) : parent.childrenTime != null)
+                return false;
+            if (time != null ? !time.equals(parent.time) : parent.time != null) return false;
+            
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = (int) (index ^ (index >>> 32));
+            result = 31 * result + (time != null ? time.hashCode() : 0);
+            result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
+            result = 31 * result + (int) (calls ^ (calls >>> 32));
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "Parent{" +
+                    "index=" + index +
+                    ", time=" + time +
+                    ", childrenTime=" + childrenTime +
+                    ", calls=" + calls +
+                    '}';
+        }
+    }
+    
+    public static class Child {
+        
+        private long index;
+        
         public Child(long index) {
             this.index = index;
         }
@@ -56,18 +135,18 @@ public class CallGraphReportElement implements ReportElement {
                     '}';
         }
     }
-
+    
     private long index;
     private ThreadInfo thread;
     private MethodInfo method;
     private int depth;
     private float timePercent;
     private CallTime time = new CallTime(0);
-    private CallTime selfTime = new CallTime(0);
     private CallTime childrenTime = new CallTime(0);
     private long calls = 0;
     private long recursiveCalls = 0;
-    private List<Child> children = new ArrayList(0);
+    private Map<Long, Parent> parents = new HashMap(0);
+    private Map<Long, Child> children = new HashMap(0);
 
     public CallGraphReportElement(long index, ThreadInfo thread, MethodInfo method, int depth) {
         this.index = index;
@@ -88,20 +167,40 @@ public class CallGraphReportElement implements ReportElement {
         return timePercent;
     }
 
-    public void setTime(CallTime time) {
-        this.time = time;
+    public ThreadInfo getThread() {
+        return thread;
+    }
+
+    public MethodInfo getMethod() {
+        return method;
+    }
+    
+    public void addParent(Parent parent) {
+        parents.put(parent.getIndex(), parent);
+    }
+    
+    public Map<Long, Parent> getParents() {
+        return parents;
+    }
+
+    public void addChild(Child child) {
+        children.put(child.getIndex(), child);
+    }
+    
+    public Map<Long, Child> getChildren() {
+        return children;
     }
 
     public CallTime getTime() {
         return time;
     }
 
-    public CallTime getSelfTime() {
-        return selfTime;
+    public void setTime(CallTime time) {
+        this.time = time;
     }
 
-    public void setSelfTime(CallTime selfTime) {
-        this.selfTime = selfTime;
+    public CallTime getSelfTime() {
+        return time.minus(childrenTime);
     }
 
     public CallTime getChildrenTime() {
@@ -112,28 +211,12 @@ public class CallGraphReportElement implements ReportElement {
         this.childrenTime = childrenTime;
     }
 
-    public ThreadInfo getThread() {
-        return thread;
-    }
-
-    public MethodInfo getMethod() {
-        return method;
-    }
-
-    public void addChild(Child child) {
-        children.add(child);
-    }
-
-    public List<Child> getChildren() {
-        return children;
+    public long getCalls() {
+        return calls;
     }
 
     public void setCalls(long calls) {
         this.calls = calls;
-    }
-
-    public long getCalls() {
-        return calls;
     }
 
     public void setRecursiveCalls(long recursiveCalls) {
@@ -149,38 +232,23 @@ public class CallGraphReportElement implements ReportElement {
     }
 
     @Override
-    public String toString() {
-        return "CallGraphReportElement{" +
-                "index=" + index +
-                ", timePercent=" + timePercent +
-                ", selfTime=" + selfTime +
-                ", childrenTime=" + childrenTime +
-                ", thread=" + thread +
-                ", method=" + method +
-                ", calls=" + getCalls() +
-                ", recursiveCalls=" + recursiveCalls +
-                ", children=" + children +
-                ", depth=" + depth +
-                '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         CallGraphReportElement that = (CallGraphReportElement) o;
 
-        if (getCalls() != that.getCalls()) return false;
-        if (recursiveCalls != that.recursiveCalls) return false;
+        if (calls != that.calls) return false;
         if (depth != that.depth) return false;
         if (index != that.index) return false;
+        if (recursiveCalls != that.recursiveCalls) return false;
         if (Float.compare(that.timePercent, timePercent) != 0) return false;
         if (children != null ? !children.equals(that.children) : that.children != null) return false;
         if (childrenTime != null ? !childrenTime.equals(that.childrenTime) : that.childrenTime != null) return false;
         if (method != null ? !method.equals(that.method) : that.method != null) return false;
-        if (selfTime != null ? !selfTime.equals(that.selfTime) : that.selfTime != null) return false;
+        if (parents != null ? !parents.equals(that.parents) : that.parents != null) return false;
         if (thread != null ? !thread.equals(that.thread) : that.thread != null) return false;
+        if (time != null ? !time.equals(that.time) : that.time != null) return false;
 
         return true;
     }
@@ -188,17 +256,33 @@ public class CallGraphReportElement implements ReportElement {
     @Override
     public int hashCode() {
         int result = (int) (index ^ (index >>> 32));
-        result = 31 * result + (timePercent != +0.0f ? Float.floatToIntBits(timePercent) : 0);
-        result = 31 * result + (selfTime != null ? selfTime.hashCode() : 0);
-        result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
         result = 31 * result + (thread != null ? thread.hashCode() : 0);
         result = 31 * result + (method != null ? method.hashCode() : 0);
-        result = 31 * result + (int) (getCalls() ^ (getCalls() >>> 32));
-        result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
-        result = 31 * result + (children != null ? children.hashCode() : 0);
         result = 31 * result + depth;
+        result = 31 * result + (timePercent != +0.0f ? Float.floatToIntBits(timePercent) : 0);
+        result = 31 * result + (time != null ? time.hashCode() : 0);
+        result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
+        result = 31 * result + (int) (calls ^ (calls >>> 32));
+        result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
+        result = 31 * result + (parents != null ? parents.hashCode() : 0);
+        result = 31 * result + (children != null ? children.hashCode() : 0);
         return result;
     }
 
-
+    @Override
+    public String toString() {
+        return "CallGraphReportElement{" +
+                "index=" + index +
+                ", thread=" + thread +
+                ", method=" + method +
+                ", depth=" + depth +
+                ", timePercent=" + timePercent +
+                ", time=" + time +
+                ", childrenTime=" + childrenTime +
+                ", calls=" + calls +
+                ", recursiveCalls=" + recursiveCalls +
+                ", parents=" + parents +
+                ", children=" + children +
+                '}';
+    }
 }

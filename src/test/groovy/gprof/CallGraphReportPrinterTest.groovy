@@ -37,14 +37,18 @@ class CallGraphReportPrinterTest extends Specification {
         then:
         def expected = '''\
 index  % time  self  children  calls  name                    
+                                          <spontaneous>       
 [1]      57.1  2.00      6.00      2  class-a.method-1 [1]    
-               4.00      0.00      4      class-b.method-1 [3]
-               2.00      0.00      2      class-c.method-1 [4]
+               2.00      0.00    2/2      class-c.method-1 [4]
+               4.00      0.00    4/4      class-b.method-1 [3]
 --------------------------------------------------------------
+                                          <spontaneous>       
 [2]      42.9  6.00      0.00    1+2  class-a.method-2 [2]    
 --------------------------------------------------------------
+               4.00      0.00    4/4      class-a.method-1 [1]
 [3]      28.6  4.00      0.00      4  class-b.method-1 [3]    
 --------------------------------------------------------------
+               2.00      0.00    2/2      class-a.method-1 [1]
 [4]      14.3  2.00      0.00      2  class-c.method-1 [4]    
 --------------------------------------------------------------
 '''

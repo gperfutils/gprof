@@ -50,6 +50,48 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
         }
         lines.add(header);
         for (CallGraphReportElement element : elements) {
+            if (element.getParents().isEmpty()) {
+            } else {
+                for (CallGraphReportElement.Parent parent : element.getParents().values()) {
+                    if (parent.getIndex() == 0) {
+                        lines.add(
+                                Utils.hashMap(
+                                        Column.INDEX,
+                                        "",
+                                        Column.TOTAL_TIME_PERCENT,
+                                        "",
+                                        Column.SELF_TIME,
+                                        "",
+                                        Column.CHILDREN_TIME,
+                                        "",
+                                        Column.CALLS,
+                                        "",
+                                        Column.NAME,
+                                        "    <spontaneous>"));
+                    } else if (parent.getIndex() == element.getIndex()) {
+                        // ignore recursive call
+                    } else {
+                        CallGraphReportElement parentRef = graphTable.get(parent.getIndex());
+                        lines.add(
+                                Utils.hashMap(
+                                        Column.INDEX,
+                                        "",
+                                        Column.TOTAL_TIME_PERCENT,
+                                        "",
+                                        Column.SELF_TIME,
+                                        String.format("%.2f", parent.getSelfTime().microseconds()),
+                                        Column.CHILDREN_TIME,
+                                        String.format("%.2f", parent.getChildrenTime().microseconds()),
+                                        Column.CALLS,
+                                        String.format("%d/%d", parent.getCalls(), element.getCalls() - element.getRecursiveCalls()),
+                                        Column.NAME,
+                                        String.format("    %s.%s [%d]",
+                                                parentRef.getMethod().getClassName(),
+                                                parentRef.getMethod().getMethodName(),
+                                                parent.getIndex())));
+                    }
+                }
+            }
             lines.add(
                 Utils.hashMap(
                         Column.INDEX,
@@ -64,10 +106,13 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                         formatCalls(element),
                         Column.NAME,
                         String.format("%s.%s [%d]",
-                                element.getMethod().getClassName(), element.getMethod().getMethodName(), element.getIndex())));
+                                element.getMethod().getClassName(),
+                                element.getMethod().getMethodName(),
+                                element.getIndex())));
 
-            for (CallGraphReportElement.Child child : element.getChildren()) {
+            for (CallGraphReportElement.Child child : element.getChildren().values()) {
                 CallGraphReportElement childRef = graphTable.get(child.getIndex());
+                CallGraphReportElement.Parent childParent = childRef.getParents().get(element.getIndex());
                 lines.add(
                     Utils.hashMap(
                             Column.INDEX,
@@ -75,14 +120,16 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                             Column.TOTAL_TIME_PERCENT,
                             "",
                             Column.SELF_TIME,
-                            String.format("%.2f", childRef.getSelfTime().microseconds()),
+                            String.format("%.2f", childParent.getSelfTime().microseconds()),
                             Column.CHILDREN_TIME,
-                            String.format("%.2f", childRef.getChildrenTime().microseconds()),
+                            String.format("%.2f", childParent.getChildrenTime().microseconds()),
                             Column.CALLS,
-                            formatCalls(childRef),
+                            String.format("%d/%d", childParent.getCalls(), childRef.getCalls()),
                             Column.NAME,
                             String.format("    %s.%s [%d]",
-                                    childRef.getMethod().getClassName(), childRef.getMethod().getMethodName(), child.getIndex())));
+                                    childRef.getMethod().getClassName(),
+                                    childRef.getMethod().getMethodName(),
+                                    child.getIndex())));
             }
             lines.add(SEPARATOR_CHAR);
         }
