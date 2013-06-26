@@ -33,6 +33,7 @@ class CallGraphReportNormalizerTest extends Specification {
         parent.time = time(args.time)
         parent.childrenTime = time(args.childrenTime)
         parent.calls = args.calls
+        parent.recursiveCalls = args.recursiveCalls
         parent
     }
     
@@ -53,22 +54,21 @@ class CallGraphReportNormalizerTest extends Specification {
         ge.time = ge.parents.inject(time(0L)) { sum, i, p -> sum + p.time }
         ge.childrenTime = ge.parents.inject(time(0L)) { sum, i, p -> sum + p.childrenTime }
         ge.calls = ge.parents.inject(0L) { sum, i, p -> sum + p.calls }
-        ge.recursiveCalls = ge.parents.findAll { i, p -> p.index == ge.index }
-                                      .inject(0L) { sum, i, p -> sum + p.calls }
+        ge.recursiveCalls = ge.parents.inject(0L) { sum, i, p -> sum + p.recursiveCalls }
         ge
     }
 
     def "Recursive calls are counted apart from non-recursive calls"() {
         when:
         def elements = norm(tree(
-            methodCallNode("A", "a", 100,
-                methodCallNode("A", "a", 100,
-                    methodCallNode("A", "a", 100)
+            methodCallNode("A", "a", 1500,
+                methodCallNode("A", "a", 1000,
+                    methodCallNode("A", "a", 500)
                 )
             ),
-            methodCallNode("A", "a", 100,
-                methodCallNode("A", "a", 100,
-                    methodCallNode("A", "a", 100)
+            methodCallNode("A", "a", 1500,
+                methodCallNode("A", "a", 1000,
+                    methodCallNode("A", "a", 500)
                 )
             )
         ))
@@ -81,8 +81,7 @@ class CallGraphReportNormalizerTest extends Specification {
                 depth: 0,
                 timePercent: 100,
                 parents: [
-                    spontaneous(time: 100 * 2, childrenTime: 0, calls: 2),
-                    parent(index: 1, time: 100 * 4, childrenTime: 0, calls: 4),
+                    spontaneous(time: 3000, childrenTime: 0, calls: 6, recursiveCalls: 4),
                 ],
                 children: [],
             )
@@ -93,12 +92,12 @@ class CallGraphReportNormalizerTest extends Specification {
     def "Method calls have the same caller are unified"() {
         when:
         def elements = norm(tree(
-            methodCallNode("A", "a", 50 + 100 * 2,
-                methodCallNode("A", "b", 100),
-                methodCallNode("A", "b", 100),
+            methodCallNode("A", "a", 2000,
+                methodCallNode("A", "b", 500),
+                methodCallNode("A", "b", 500),
             ),
-            methodCallNode("A", "a", 50 + 100 * 1,
-                methodCallNode("A", "b", 100),
+            methodCallNode("A", "a", 1500,
+                methodCallNode("A", "b", 500),
             ),
         ))
 
@@ -110,7 +109,7 @@ class CallGraphReportNormalizerTest extends Specification {
                 method: method("A", "a"),
                 depth: 0,
                 timePercent: 100,
-                parents: [spontaneous(time: 50 * 2 + 100 * 3, childrenTime: 100 * 3, calls:2)],
+                parents: [spontaneous(time: 3500, childrenTime: 1500, calls:2, recursiveCalls: 0)],
                 children: [child(index: 2)]
             ),
             element(
@@ -118,8 +117,8 @@ class CallGraphReportNormalizerTest extends Specification {
                 thread: thread(),
                 method: method("A", "b"),
                 depth: 1,
-                timePercent: 100 * 3 / (50 * 2 + 100 * 3) * 100,
-                parents: [parent(index: 1, time: 100 * 3, childrenTime: 0, calls: 3)],
+                timePercent: 1500 / 3500 * 100,
+                parents: [parent(index: 1, time: 1500, childrenTime: 0, calls: 3, recursiveCalls: 0)],
                 children: []
             ),
         ]

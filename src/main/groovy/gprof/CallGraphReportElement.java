@@ -25,6 +25,7 @@ public class CallGraphReportElement implements ReportElement {
         private CallTime time = new CallTime(0);
         private CallTime childrenTime = new CallTime(0);
         private long calls;
+        private long recursiveCalls;
         
         public Parent(long index) {
             this.index = index;
@@ -58,6 +59,18 @@ public class CallGraphReportElement implements ReportElement {
             this.calls = calls;
         }
 
+        public long getRecursiveCalls() {
+            return recursiveCalls;
+        }
+
+        public void setRecursiveCalls(long recursiveCalls) {
+            this.recursiveCalls = recursiveCalls;
+        }
+        
+        public long getNonRecursiveCalls() {
+            return calls - recursiveCalls;
+        }
+
         public long getIndex() {
             return index;
         }
@@ -71,10 +84,10 @@ public class CallGraphReportElement implements ReportElement {
 
             if (calls != parent.calls) return false;
             if (index != parent.index) return false;
+            if (recursiveCalls != parent.recursiveCalls) return false;
             if (childrenTime != null ? !childrenTime.equals(parent.childrenTime) : parent.childrenTime != null)
                 return false;
             if (time != null ? !time.equals(parent.time) : parent.time != null) return false;
-            
 
             return true;
         }
@@ -85,6 +98,7 @@ public class CallGraphReportElement implements ReportElement {
             result = 31 * result + (time != null ? time.hashCode() : 0);
             result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
             result = 31 * result + (int) (calls ^ (calls >>> 32));
+            result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
             return result;
         }
 
@@ -95,6 +109,7 @@ public class CallGraphReportElement implements ReportElement {
                     ", time=" + time +
                     ", childrenTime=" + childrenTime +
                     ", calls=" + calls +
+                    ", recursiveCalls=" + recursiveCalls +
                     '}';
         }
     }
@@ -225,6 +240,10 @@ public class CallGraphReportElement implements ReportElement {
 
     public long getRecursiveCalls() {
         return recursiveCalls;
+    }
+    
+    public long getNonRecursiveCalls() {
+        return calls - recursiveCalls;
     }
 
     public int getDepth() {

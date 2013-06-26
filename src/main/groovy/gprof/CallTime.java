@@ -28,15 +28,15 @@ public class CallTime implements Comparable<CallTime> {
     }
 
     public double microseconds() {
-        return ns / 1000;
+        return ns * 0.001;
     }
 
     public double milliseconds() {
-        return microseconds() / 1000;
+        return microseconds() * 0.001;
     }
 
     public double seconds() {
-        return milliseconds() / 1000;
+        return milliseconds() * 0.001;
     }
 
     public CallTime plus(CallTime other) {

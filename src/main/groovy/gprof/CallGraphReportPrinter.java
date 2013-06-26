@@ -16,19 +16,63 @@
 package gprof;
 
 import java.io.PrintWriter;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.Format;
+import java.text.MessageFormat;
 import java.util.*;
 
 public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElement> {
 
     private static Character SEPARATOR_CHAR = '-';
     private static String COLUMN_SEPARATOR = "  ";
-
-    private String formatCalls(CallGraphReportElement element) {
-        if (element.getRecursiveCalls() > 0) {
-            return String.format("%d+%d",
-                    element.getCalls() - element.getRecursiveCalls(), element.getRecursiveCalls());
+    private static String SPONTANEOUS = "<spontaneous>";
+    
+    private static class Formatter {
+        
+        private static Format TIME_PERCENT_FORMAT;
+        private static Format TIME_FORMAT;
+        static {
+            DecimalFormat df;
+            df = new DecimalFormat("0.0");
+            df.setRoundingMode(RoundingMode.DOWN);
+            TIME_PERCENT_FORMAT = df;
+            df = new DecimalFormat("0.00");
+            df.setRoundingMode(RoundingMode.DOWN);
+            TIME_FORMAT = df;
+        } 
+        
+        public static String index(long index) {
+            return String.format("[%d]", index);    
         }
-        return String.format("%d", element.getCalls());
+        
+        public static String time(long nanotime) {
+            return TIME_FORMAT.format(nanotime * 0.001);
+        }
+
+        public static String percent(double percent) {
+            return TIME_PERCENT_FORMAT.format(percent);
+        }
+        
+        public static String indent(String s) {
+            return "    " + s;
+        }
+        
+        public static String name(String className, String methodName, long index) {
+            return String.format("%s.%s " + index(index), className, methodName);
+        }
+        
+        public static String primaryCalls(long calls, long recursiveCalls) {
+            if (recursiveCalls > 0) {
+                return String.format("%d+%d", calls, recursiveCalls);
+            }
+            return String.format("%d", calls);
+        }
+        
+        public static String childCalls(long calls, long totalCalls) {
+            return String.format("%d/%d", calls, totalCalls);
+        }
+        
     }
 
     @Override
@@ -67,48 +111,49 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                         Column.CALLS,
                                         "",
                                         Column.NAME,
-                                        "    <spontaneous>"));
+                                        Formatter.indent(SPONTANEOUS)));
                     } else if (parent.getIndex() == element.getIndex()) {
                         // ignore recursive call
                     } else {
                         CallGraphReportElement parentRef = graphTable.get(parent.getIndex());
                         lines.add(
-                                Utils.hashMap(
-                                        Column.INDEX,
-                                        "",
-                                        Column.TOTAL_TIME_PERCENT,
-                                        "",
-                                        Column.SELF_TIME,
-                                        String.format("%.2f", parent.getSelfTime().microseconds()),
-                                        Column.CHILDREN_TIME,
-                                        String.format("%.2f", parent.getChildrenTime().microseconds()),
-                                        Column.CALLS,
-                                        String.format("%d/%d", parent.getCalls(), element.getCalls() - element.getRecursiveCalls()),
-                                        Column.NAME,
-                                        String.format("    %s.%s [%d]",
-                                                parentRef.getMethod().getClassName(),
-                                                parentRef.getMethod().getMethodName(),
-                                                parent.getIndex())));
+                            Utils.hashMap(
+                                Column.INDEX,
+                                "",
+                                Column.TOTAL_TIME_PERCENT,
+                                "",
+                                Column.SELF_TIME,
+                                Formatter.time(parent.getSelfTime().nanoseconds()),
+                                Column.CHILDREN_TIME,
+                                Formatter.time(parent.getChildrenTime().nanoseconds()),
+                                Column.CALLS,
+                                Formatter.childCalls(parent.getNonRecursiveCalls(), element.getNonRecursiveCalls()),
+                                Column.NAME,
+                                Formatter.indent(Formatter.name(
+                                        parentRef.getMethod().getClassName(),
+                                        parentRef.getMethod().getMethodName(),
+                                        parent.getIndex()))
+                            ));
                     }
                 }
             }
-            lines.add(
-                Utils.hashMap(
-                        Column.INDEX,
-                        String.format("[%d]", element.getIndex()),
-                        Column.TOTAL_TIME_PERCENT,
-                        String.format("%.1f", element.getTimePercent()),
-                        Column.SELF_TIME,
-                        String.format("%.2f", element.getSelfTime().microseconds()),
-                        Column.CHILDREN_TIME,
-                        String.format("%.2f", element.getChildrenTime().microseconds()),
-                        Column.CALLS,
-                        formatCalls(element),
-                        Column.NAME,
-                        String.format("%s.%s [%d]",
-                                element.getMethod().getClassName(),
-                                element.getMethod().getMethodName(),
-                                element.getIndex())));
+            lines.add(Utils.hashMap(
+                    Column.INDEX,
+                    Formatter.index(element.getIndex()),
+                    Column.TOTAL_TIME_PERCENT,
+                    Formatter.percent(element.getTimePercent()),
+                    Column.SELF_TIME,
+                    Formatter.time(element.getSelfTime().nanoseconds()),
+                    Column.CHILDREN_TIME,
+                    Formatter.time(element.getChildrenTime().nanoseconds()),
+                    Column.CALLS,
+                    Formatter.primaryCalls(element.getNonRecursiveCalls(), element.getRecursiveCalls()),
+                    Column.NAME,
+                    Formatter.name(
+                        element.getMethod().getClassName(),
+                        element.getMethod().getMethodName(),
+                        element.getIndex())
+                ));
 
             for (CallGraphReportElement.Child child : element.getChildren().values()) {
                 CallGraphReportElement childRef = graphTable.get(child.getIndex());
@@ -120,16 +165,16 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                             Column.TOTAL_TIME_PERCENT,
                             "",
                             Column.SELF_TIME,
-                            String.format("%.2f", childParent.getSelfTime().microseconds()),
+                            Formatter.time(childParent.getSelfTime().nanoseconds()),
                             Column.CHILDREN_TIME,
-                            String.format("%.2f", childParent.getChildrenTime().microseconds()),
+                            Formatter.time(childParent.getChildrenTime().nanoseconds()),
                             Column.CALLS,
-                            String.format("%d/%d", childParent.getCalls(), childRef.getCalls()),
+                            Formatter.childCalls(childParent.getNonRecursiveCalls(), childRef.getNonRecursiveCalls()),
                             Column.NAME,
-                            String.format("    %s.%s [%d]",
+                            Formatter.indent(Formatter.name(
                                     childRef.getMethod().getClassName(),
                                     childRef.getMethod().getMethodName(),
-                                    child.getIndex())));
+                                    child.getIndex()))));
             }
             lines.add(SEPARATOR_CHAR);
         }

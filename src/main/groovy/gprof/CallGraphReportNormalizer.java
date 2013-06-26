@@ -44,17 +44,23 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                             MethodCallInfo childMethodCall = (MethodCallInfo) child.getData();
                             long index;
                             if (indexTable.containsKey(childMethodCall.getMethod())) {
-                               index = indexTable.get(childMethodCall.getMethod());
+                                index = indexTable.get(childMethodCall.getMethod());
                             } else {
                                 index = ++lastIndex;
-                                indexTable.put(childMethodCall.getMethod(), index);
                             }
+                            indexTable.put(childMethodCall.getMethod(), index);
                         }
                     }
+                    parentStack.push(0L);
                     indexTableStack.push(indexTable);
                 } else if (call instanceof MethodCallInfo) {
                     MethodCallInfo methodCall = (MethodCallInfo) call;
                     long index = indexTableStack.peek().get(methodCall.getMethod());
+                    long parentIndex = parentStack.isEmpty() ? 0 : parentStack.peek();
+                    boolean recursive = index == parentIndex;
+                    for (int i = parentStack.size() - 1; parentIndex == index; i--) {
+                        parentIndex = parentStack.get(i);    
+                    }
 
                     CallGraphReportElement element = elementTable.get(index);
                     if (element == null) {
@@ -62,18 +68,18 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                                 index, thread, methodCall.getMethod(), indexTableStack.size() - 1);
                         elementTable.put(index, element);
                     }
-                    element.setCalls(element.getCalls() + 1);
-                    element.setTime(element.getTime().plus(methodCall.getTime()));
-
                     CallGraphReportElement.Parent parent;
-                    long parentIndex = parentStack.isEmpty() ? 0 : parentStack.peek();
                     parent = element.getParents().get(parentIndex);
                     if (parent == null) {
                         parent = new CallGraphReportElement.Parent(parentIndex);
                         element.addParent(parent);
                     }
+                    element.setCalls(element.getCalls() + 1);
                     parent.setCalls(parent.getCalls() + 1);
-                    parent.setTime(parent.getTime().plus(methodCall.getTime()));
+                    if (!recursive) {
+                        element.setTime(element.getTime().plus(methodCall.getTime()));
+                        parent.setTime(parent.getTime().plus(methodCall.getTime()));
+                    }
 
                     Map<MethodInfo, Long> indexTable = new HashMap();
                     for (CallGraphReportElement.Child child : element.getChildren().values()) {
@@ -83,6 +89,7 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                         MethodCallInfo childMethodCall = (MethodCallInfo) child.getData();
                         if (childMethodCall.getMethod().equals(methodCall.getMethod())) {
                             element.setRecursiveCalls(element.getRecursiveCalls() + 1);
+                            parent.setRecursiveCalls(parent.getRecursiveCalls() + 1);
                             indexTable.put(childMethodCall.getMethod(), index);
                         } else {
                             if (!indexTable.containsKey(childMethodCall.getMethod())) {
@@ -117,9 +124,13 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                             element.setTimePercent(((float) element.getTime().nanoseconds()) / threadRun.getTime().nanoseconds() * 100f);
                         }
                     }
-                } else if (node.getData() instanceof MethodCallInfo) {
+                } 
+                /*
+                else if (node.getData() instanceof MethodCallInfo) {
                     parentStack.pop();
                 }
+                */
+                parentStack.pop();
             }
         });
         return new ArrayList(elementTable.values());
