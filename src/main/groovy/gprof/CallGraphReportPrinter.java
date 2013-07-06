@@ -19,7 +19,6 @@ import java.io.PrintWriter;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.Format;
-import java.text.MessageFormat;
 import java.util.*;
 
 public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElement> {
@@ -46,6 +45,10 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             return String.format("[%d]", index);    
         }
         
+        public static String cycleIndex(long number) {
+            return String.format("<cycle %d>", number);    
+        }
+        
         public static String time(long nanotime) {
             return TIME_FORMAT.format(nanotime * 0.001);
         }
@@ -58,19 +61,28 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             return "    " + s;
         }
         
-        public static String name(String className, String methodName, long index) {
-            return String.format("%s.%s " + index(index), className, methodName);
+        public static String name(String className, String methodName, long index, long cycleIndex) {
+            String s = String.format("%s.%s", className, methodName);
+            if (cycleIndex > 0) {
+                s += " " + cycleIndex(cycleIndex);
+            }
+            s += " " + index(index);
+            return s;
         }
         
-        public static String primaryCalls(long calls, long recursiveCalls) {
+        public static String primaryCalls(long totalCalls, long recursiveCalls) {
             if (recursiveCalls > 0) {
-                return String.format("%d+%d", calls, recursiveCalls);
+                return String.format("%d+%d", totalCalls - recursiveCalls, recursiveCalls);
             }
-            return String.format("%d", calls);
+            return String.format("%d", totalCalls);
         }
         
         public static String childCalls(long calls, long totalCalls) {
             return String.format("%d/%d", calls, totalCalls);
+        }
+        
+        public static String cycleChildCalls(long calls) {
+            return String.format("%d", calls);
         }
         
     }
@@ -82,8 +94,14 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
 
     @Override
     public void print(List<CallGraphReportElement> elements, PrintWriter writer, Comparator comparator) {
-        Map<Long, CallGraphReportElement> graphTable = new HashMap();
-        for (CallGraphReportElement entry : elements) {
+        for (CallGraphReportElement element : elements) {
+            printElement(element.getSubElements(), writer, comparator);
+        }
+    }
+    
+    protected void printElement(Collection<CallGraphReportSubElement> elements, PrintWriter writer, Comparator comparator) {
+        Map<Long, CallGraphReportSubElement> graphTable = new HashMap();
+        for (CallGraphReportSubElement entry : elements) {
             graphTable.put(entry.getIndex(), entry);
         }
 
@@ -93,10 +111,10 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             header.put(col, col.toString());
         }
         lines.add(header);
-        for (CallGraphReportElement element : elements) {
+        for (CallGraphReportSubElement element : elements) {
             if (element.getParents().isEmpty()) {
             } else {
-                for (CallGraphReportElement.Parent parent : element.getParents().values()) {
+                for (CallGraphReportSubElement.Parent parent : element.getParents().values()) {
                     if (parent.getIndex() == 0) {
                         lines.add(
                                 Utils.hashMap(
@@ -105,76 +123,130 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                         Column.TOTAL_TIME_PERCENT,
                                         "",
                                         Column.SELF_TIME,
-                                        "",
+                                        Formatter.time(parent.getSelfTime().nanoseconds()),
                                         Column.CHILDREN_TIME,
-                                        "",
+                                        Formatter.time(parent.getChildrenTime().nanoseconds()),
                                         Column.CALLS,
-                                        "",
+                                        Formatter.childCalls(
+                                                parent.getCalls() - parent.getRecursiveCalls(),
+                                                element.getCalls() - element.getRecursiveCalls() - element.getCycleCalls()),
                                         Column.NAME,
-                                        Formatter.indent(SPONTANEOUS)));
+                                        Formatter.indent(SPONTANEOUS)
+                                )
+                            );
                     } else if (parent.getIndex() == element.getIndex()) {
                         // ignore recursive call
                     } else {
-                        CallGraphReportElement parentRef = graphTable.get(parent.getIndex());
-                        lines.add(
+                        CallGraphReportSubElement parentRef = graphTable.get(parent.getIndex());
+                        if (parentRef.getCycleIndex() > 0 && parentRef.getCycleIndex() == element.getCycleIndex()) {
+                            lines.add(
+                                    Utils.hashMap(
+                                            Column.INDEX,
+                                            "",
+                                            Column.TOTAL_TIME_PERCENT,
+                                            "",
+                                            Column.SELF_TIME,
+                                            "",
+                                            Column.CHILDREN_TIME,
+                                            "",
+                                            Column.CALLS,
+                                            Formatter.cycleChildCalls(parent.getCalls()),
+                                            Column.NAME,
+                                            Formatter.indent(Formatter.name(parentRef.getMethod().getClassName(),
+                                                    parentRef.getMethod().getMethodName(),
+                                                    parentRef.getIndex(),
+                                                    parentRef.getCycleIndex()))));
+                            
+                        } else {
+                            lines.add(
+                                Utils.hashMap(
+                                    Column.INDEX,
+                                    "",
+                                    Column.TOTAL_TIME_PERCENT,
+                                    "",
+                                    Column.SELF_TIME,
+                                    Formatter.time(parent.getSelfTime().nanoseconds()),
+                                    Column.CHILDREN_TIME,
+                                    Formatter.time(parent.getChildrenTime().nanoseconds()),
+                                    Column.CALLS,
+                                    Formatter.childCalls(parent.getCalls() - parent.getRecursiveCalls(),
+                                            element.getCalls() - element.getRecursiveCalls() - element.getCycleCalls()),
+                                    Column.NAME,
+                                    Formatter.indent(Formatter.name(
+                                            parentRef.getMethod().getClassName(),
+                                            parentRef.getMethod().getMethodName(),
+                                            parentRef.getIndex(),
+                                            parentRef.getCycleIndex()))
+                                )
+                            );
+                        }
+                    }
+                }
+            }
+            lines.add(primaryLine(element));
+
+            for (CallGraphReportSubElement.Child child : element.getChildren().values()) {
+                CallGraphReportSubElement childRef = graphTable.get(child.getIndex());
+                CallGraphReportSubElement.Parent childParent = childRef.getParents().get(element.getIndex());
+                if (element instanceof CallGraphReportWholeCycleElement) {
+                    lines.add(
                             Utils.hashMap(
+                                    Column.INDEX,
+                                    "",
+                                    Column.TOTAL_TIME_PERCENT,
+                                    "",
+                                    Column.SELF_TIME,
+                                    Formatter.time(childRef.getSelfTime().nanoseconds()),
+                                    Column.CHILDREN_TIME,
+                                    Formatter.time(childRef.getChildrenTime().nanoseconds()),
+                                    Column.CALLS,
+                                    Formatter.cycleChildCalls(childRef.getCalls()),
+                                    Column.NAME,
+                                    Formatter.indent(Formatter.name(
+                                            childRef.getMethod().getClassName(),
+                                            childRef.getMethod().getMethodName(),
+                                            childRef.getIndex(),
+                                            childRef.getCycleIndex()))));
+                } else if (childRef.getCycleIndex() > 0 && childRef.getCycleIndex() == element.getCycleIndex()) {
+                    lines.add(
+                            Utils.hashMap(
+                                    Column.INDEX,
+                                    "",
+                                    Column.TOTAL_TIME_PERCENT,
+                                    "",
+                                    Column.SELF_TIME,
+                                    "",
+                                    Column.CHILDREN_TIME,
+                                    "",
+                                    Column.CALLS,
+                                    Formatter.cycleChildCalls(childParent.getCalls()),
+                                    Column.NAME,
+                                    Formatter.indent(Formatter.name(
+                                            childRef.getMethod().getClassName(),
+                                            childRef.getMethod().getMethodName(),
+                                            childRef.getIndex(),
+                                            childRef.getCycleIndex()))));
+                    
+                } else {
+                    lines.add(
+                        Utils.hashMap(
                                 Column.INDEX,
                                 "",
                                 Column.TOTAL_TIME_PERCENT,
                                 "",
                                 Column.SELF_TIME,
-                                Formatter.time(parent.getSelfTime().nanoseconds()),
+                                Formatter.time(childParent.getSelfTime().nanoseconds()),
                                 Column.CHILDREN_TIME,
-                                Formatter.time(parent.getChildrenTime().nanoseconds()),
+                                Formatter.time(childParent.getChildrenTime().nanoseconds()),
                                 Column.CALLS,
-                                Formatter.childCalls(parent.getNonRecursiveCalls(), element.getNonRecursiveCalls()),
+                                Formatter.childCalls(childParent.getCalls() - childParent.getRecursiveCalls(), childRef.getCalls() - childRef.getRecursiveCalls()),
                                 Column.NAME,
                                 Formatter.indent(Formatter.name(
-                                        parentRef.getMethod().getClassName(),
-                                        parentRef.getMethod().getMethodName(),
-                                        parent.getIndex()))
-                            ));
-                    }
+                                        childRef.getMethod().getClassName(),
+                                        childRef.getMethod().getMethodName(),
+                                        childRef.getIndex(),
+                                        childRef.getCycleIndex()))));
                 }
-            }
-            lines.add(Utils.hashMap(
-                    Column.INDEX,
-                    Formatter.index(element.getIndex()),
-                    Column.TOTAL_TIME_PERCENT,
-                    Formatter.percent(element.getTimePercent()),
-                    Column.SELF_TIME,
-                    Formatter.time(element.getSelfTime().nanoseconds()),
-                    Column.CHILDREN_TIME,
-                    Formatter.time(element.getChildrenTime().nanoseconds()),
-                    Column.CALLS,
-                    Formatter.primaryCalls(element.getNonRecursiveCalls(), element.getRecursiveCalls()),
-                    Column.NAME,
-                    Formatter.name(
-                        element.getMethod().getClassName(),
-                        element.getMethod().getMethodName(),
-                        element.getIndex())
-                ));
-
-            for (CallGraphReportElement.Child child : element.getChildren().values()) {
-                CallGraphReportElement childRef = graphTable.get(child.getIndex());
-                CallGraphReportElement.Parent childParent = childRef.getParents().get(element.getIndex());
-                lines.add(
-                    Utils.hashMap(
-                            Column.INDEX,
-                            "",
-                            Column.TOTAL_TIME_PERCENT,
-                            "",
-                            Column.SELF_TIME,
-                            Formatter.time(childParent.getSelfTime().nanoseconds()),
-                            Column.CHILDREN_TIME,
-                            Formatter.time(childParent.getChildrenTime().nanoseconds()),
-                            Column.CALLS,
-                            Formatter.childCalls(childParent.getNonRecursiveCalls(), childRef.getNonRecursiveCalls()),
-                            Column.NAME,
-                            Formatter.indent(Formatter.name(
-                                    childRef.getMethod().getClassName(),
-                                    childRef.getMethod().getMethodName(),
-                                    child.getIndex()))));
             }
             lines.add(SEPARATOR_CHAR);
         }
@@ -245,6 +317,32 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             }
         }
         writer.flush();
+    }
+
+    private HashMap primaryLine(CallGraphReportSubElement element) {
+        String name;
+        if (element instanceof CallGraphReportWholeCycleElement) {
+            name = String.format("<cycle %d as a whole> " + Formatter.index(element.getIndex()), element.getCycleIndex());
+        } else {
+            name = Formatter.name(
+                    element.getMethod().getClassName(),
+                    element.getMethod().getMethodName(),
+                    element.getIndex(),
+                    element.getCycleIndex());
+        }
+        return Utils.hashMap(
+                Column.INDEX,
+                Formatter.index(element.getIndex()),
+                Column.TOTAL_TIME_PERCENT,
+                Formatter.percent(element.getTimePercent()),
+                Column.SELF_TIME,
+                Formatter.time(element.getSelfTime().nanoseconds()),
+                Column.CHILDREN_TIME,
+                Formatter.time(element.getChildrenTime().nanoseconds()),
+                Column.CALLS,
+                Formatter.primaryCalls(element.getCalls(), element.getRecursiveCalls()),
+                Column.NAME,
+                name);
     }
 
     private String createSeparator(int rowWidth) {

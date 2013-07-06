@@ -24,7 +24,7 @@ class CallGraphReportPrinterTest extends Specification {
         then:
         def expected = '''\
 index  % time  self  children  calls  name             
-                                          <spontaneous>
+               1.00      0.00    1/1      <spontaneous>
 [1]     100.0  1.00      0.00      1  A.a [1]          
 -------------------------------------------------------
 '''
@@ -43,7 +43,7 @@ index  % time  self  children  calls  name
         then:
         def expected = '''\
 index  % time  self  children  calls  name             
-                                          <spontaneous>
+               1.00      3.00    1/1      <spontaneous>
 [1]     100.0  1.00      3.00      1  A.a [1]          
                1.25      0.00    1/1      A.b [2]      
                1.75      0.00    1/1      A.c [3]      
@@ -71,7 +71,7 @@ index  % time  self  children  calls  name
         then:
         def expected = '''\
 index  % time  self  children  calls  name             
-                                          <spontaneous>
+               1.00      3.00    1/1      <spontaneous>
 [1]     100.0  1.00      3.00      1  A.a [1]          
                0.50      0.00    1/3      A.b [2]      
 -------------------------------------------------------
@@ -79,7 +79,7 @@ index  % time  self  children  calls  name
                1.00      0.00    2/3      A.c [3]      
 [2]      31.2  1.50      0.00      3  A.b [2]          
 -------------------------------------------------------
-                                          <spontaneous>
+               2.00      0.00    1/1      <spontaneous>
 [3]      43.7  2.00      0.00      1  A.c [3]          
                1.00      0.00    2/3      A.b [2]      
 -------------------------------------------------------
@@ -100,7 +100,7 @@ index  % time  self  children  calls  name
         then:
         def expected = '''\
 index  % time  self  children  calls  name             
-                                          <spontaneous>
+               1.00      4.50    1/1      <spontaneous>
 [1]     100.0  1.00      4.50      1  A.a [1]          
                3.00      1.50    1/1      A.b [2]      
 -------------------------------------------------------
@@ -113,7 +113,44 @@ index  % time  self  children  calls  name
 -------------------------------------------------------
 '''
         out == expected
+    }
+    
+    def "Prints cycle of recursive calls"() {
+        when:
+        def data = norm(tree(
+                methodCallNode("A", "a", 1000+250+2750,
+                    methodCallNode("A", "c", 250),
+                    methodCallNode("A", "b", 500+250+2000,
+                        methodCallNode("A", "c", 250),
+                        methodCallNode("A", "a", 1000+250+750,
+                            methodCallNode("A", "c", 250),
+                            methodCallNode("A", "b", 500+250,
+                                methodCallNode("A", "c", 250)))))))
+        def out = str(data)
         
+        then:
+        def expected ='''\
+index  % time  self  children  calls  name                    
+               3.00      1.00    1/1      <spontaneous>       
+                                   1      A.b <cycle 1> [3]   
+[1]      62.5  2.00      0.50      2  A.a <cycle 1> [1]       
+               0.50      0.00    2/4      A.c [2]             
+                                   2      A.b <cycle 1> [3]   
+--------------------------------------------------------------
+               0.50      0.00    2/4      A.b <cycle 1> [3]   
+               0.50      0.00    2/4      A.a <cycle 1> [1]   
+[2]      25.0  1.00      0.00      4  A.c [2]                 
+--------------------------------------------------------------
+                                   2      A.a <cycle 1> [1]   
+[3]      37.5  1.00      0.50      2  A.b <cycle 1> [3]       
+               0.50      0.00    2/4      A.c [2]             
+                                   1      A.a <cycle 1> [1]   
+--------------------------------------------------------------
+[4]     100.0  3.00      1.00    1+3  <cycle 1 as a whole> [4]
+               2.00      0.50      2      A.a <cycle 1> [1]   
+--------------------------------------------------------------
+'''
+        out == expected  
     }
 
 }

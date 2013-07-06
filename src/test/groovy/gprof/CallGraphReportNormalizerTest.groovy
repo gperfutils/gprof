@@ -29,7 +29,7 @@ class CallGraphReportNormalizerTest extends Specification {
     }
     
     def parent(args) {
-        def parent = new CallGraphReportElement.Parent(args.index)
+        def parent = new CallGraphReportSubElement.Parent(args.index)
         parent.time = time(args.time)
         parent.childrenTime = time(args.childrenTime)
         parent.calls = args.calls
@@ -42,12 +42,20 @@ class CallGraphReportNormalizerTest extends Specification {
     }
     
     def child(args) {
-        def child = new CallGraphReportElement.Child(args.index)
+        def child = new CallGraphReportSubElement.Child(args.index)
         child
     }
-
+    
     def element(args) {
-        def ge = new CallGraphReportElement(args.index, args.thread, args.method, args.depth)
+        def e = new CallGraphReportElement(args.thread);
+        args.subElements.each {
+            e.addSubElement(it)
+        }
+        e
+    }
+
+    def subElement(args) {
+        def ge = new CallGraphReportSubElement(args.index, args.method)
         args.children.each { ge.addChild(it) }
         args.parents.each { ge.addParent(it) }
         ge.timePercent = args.timePercent
@@ -75,15 +83,18 @@ class CallGraphReportNormalizerTest extends Specification {
         then:
         def expected = [
             element(
-                index: 1,
                 thread: thread(),
-                method: method("A", "a"),
-                depth: 0,
-                timePercent: 100,
-                parents: [
-                    spontaneous(time: 3000, childrenTime: 0, calls: 6, recursiveCalls: 4),
-                ],
-                children: [],
+                subElements: [
+                    subElement(
+                        index: 1,
+                        method: method("A", "a"),
+                        timePercent: 100,
+                        parents: [
+                            spontaneous(time: 3000, childrenTime: 0, calls: 6, recursiveCalls: 4),
+                        ],
+                        children: [],
+                    )
+                ]
             )
         ]
         elements == expected
@@ -104,23 +115,24 @@ class CallGraphReportNormalizerTest extends Specification {
         then:
         def expected = [
             element(
-                index: 1,
                 thread: thread(),
-                method: method("A", "a"),
-                depth: 0,
-                timePercent: 100,
-                parents: [spontaneous(time: 3500, childrenTime: 1500, calls:2, recursiveCalls: 0)],
-                children: [child(index: 2)]
-            ),
-            element(
-                index: 2,
-                thread: thread(),
-                method: method("A", "b"),
-                depth: 1,
-                timePercent: 1500 / 3500 * 100,
-                parents: [parent(index: 1, time: 1500, childrenTime: 0, calls: 3, recursiveCalls: 0)],
-                children: []
-            ),
+                subElements: [
+                    subElement(
+                        index: 1,
+                        method: method("A", "a"),
+                        timePercent: 100,
+                        parents: [spontaneous(time: 3500, childrenTime: 1500, calls:2, recursiveCalls: 0)],
+                        children: [child(index: 2)]
+                    ),
+                    subElement(
+                        index: 2,
+                        method: method("A", "b"),
+                        timePercent: 1500 / 3500 * 100,
+                        parents: [parent(index: 1, time: 1500, childrenTime: 0, calls: 3, recursiveCalls: 0)],
+                        children: []
+                    ),
+                ]
+            )
         ]
         elements == expected
     }

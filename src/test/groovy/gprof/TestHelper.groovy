@@ -21,6 +21,7 @@ class TestHelper {
         def tree = new CallTree(Thread.currentThread());
         nodes.each { node ->
             tree.root.addChild(node)
+            tree.root.data.time += node.data.time
         }
         tree
     }
