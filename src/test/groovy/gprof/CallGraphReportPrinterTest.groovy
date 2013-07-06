@@ -152,5 +152,33 @@ index  % time  self  children  calls  name
 '''
         out == expected  
     }
+    
+    def "Prints mix of cycle and recursion calls"() {
+        when:
+        def out = str(norm(tree(
+            methodCallNode("A", "a", 1000 + 1000 + (500 + 500 + 1000),
+                methodCallNode("A", "a", 1000), // recursion in A.a
+                methodCallNode("A", "b", 500 + 500 + 1000, // cycle between A.a and A.b
+                    methodCallNode("A", "b", 500), // recursion in A.b
+                    methodCallNode("A", "a", 1000))) // cycle between A.a and A.b
+        )))
+        
+        then:
+        def expected ='''\
+index  % time  self  children  calls  name                    
+               4.00      0.00    1/1      <spontaneous>       
+                                   1      A.b <cycle 1> [2]   
+[1]      75.0  3.00      0.00    2+1  A.a <cycle 1> [1]       
+                                   1      A.b <cycle 1> [2]   
+--------------------------------------------------------------
+                                   1      A.a <cycle 1> [1]   
+[2]      25.0  1.00      0.00    1+1  A.b <cycle 1> [2]       
+                                   1      A.a <cycle 1> [1]   
+--------------------------------------------------------------
+[3]     100.0  4.00      0.00    1+2  <cycle 1 as a whole> [3]
+               3.00      0.00    2+1      A.a <cycle 1> [1]   
+--------------------------------------------------------------
+'''
+    }
 
 }
