@@ -128,7 +128,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                         Formatter.time(parent.getChildrenTime().nanoseconds()),
                                         Column.CALLS,
                                         Formatter.childCalls(
-                                                parent.getCalls() - parent.getRecursiveCalls(),
+                                                parent.getCalls() - parent.getRecursiveCalls() - parent.getCycleCalls(),
                                                 element.getCalls() - element.getRecursiveCalls() - element.getCycleCalls()),
                                         Column.NAME,
                                         Formatter.indent(SPONTANEOUS)
@@ -150,7 +150,8 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                             Column.CHILDREN_TIME,
                                             "",
                                             Column.CALLS,
-                                            Formatter.cycleChildCalls(parent.getCalls()),
+                                            Formatter.cycleChildCalls(
+                                                    parent.getCalls() - parent.getRecursiveCalls() - parent.getCycleCalls()),
                                             Column.NAME,
                                             Formatter.indent(Formatter.name(parentRef.getMethod().getClassName(),
                                                     parentRef.getMethod().getMethodName(),
@@ -170,7 +171,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                     Formatter.time(parent.getChildrenTime().nanoseconds()),
                                     Column.CALLS,
                                     Formatter.childCalls(parent.getCalls() - parent.getRecursiveCalls(),
-                                            element.getCalls() - element.getRecursiveCalls() - element.getCycleCalls()),
+                                            element.getCalls() - element.getRecursiveCalls()),
                                     Column.NAME,
                                     Formatter.indent(Formatter.name(
                                             parentRef.getMethod().getClassName(),
@@ -200,7 +201,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                     Column.CHILDREN_TIME,
                                     Formatter.time(childRef.getChildrenTime().nanoseconds()),
                                     Column.CALLS,
-                                    Formatter.cycleChildCalls(childRef.getCalls()),
+                                    Formatter.primaryCalls(childRef.getCalls(), childRef.getRecursiveCalls()),
                                     Column.NAME,
                                     Formatter.indent(Formatter.name(
                                             childRef.getMethod().getClassName(),
@@ -219,7 +220,8 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                     Column.CHILDREN_TIME,
                                     "",
                                     Column.CALLS,
-                                    Formatter.cycleChildCalls(childParent.getCalls()),
+                                    Formatter.cycleChildCalls(
+                                            childParent.getCalls() - childParent.getRecursiveCalls() - childParent.getCycleCalls()),
                                     Column.NAME,
                                     Formatter.indent(Formatter.name(
                                             childRef.getMethod().getClassName(),
@@ -239,7 +241,9 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                                 Column.CHILDREN_TIME,
                                 Formatter.time(childParent.getChildrenTime().nanoseconds()),
                                 Column.CALLS,
-                                Formatter.childCalls(childParent.getCalls() - childParent.getRecursiveCalls(), childRef.getCalls() - childRef.getRecursiveCalls()),
+                                Formatter.childCalls(
+                                        childParent.getCalls() - childParent.getRecursiveCalls(),
+                                        childRef.getCalls() - childRef.getRecursiveCalls()),
                                 Column.NAME,
                                 Formatter.indent(Formatter.name(
                                         childRef.getMethod().getClassName(),

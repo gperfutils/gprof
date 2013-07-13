@@ -34,6 +34,8 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
             long lastIndex = 0;
             long lastCycleIndex = 0;
             CallGraphReportElement element;
+            CallGraphReportSubElement spontaneousElement;
+            
             
             long searchCycleParent(long index, long parentIndex) {
                 CallGraphReportSubElement parentElement = element.getSubElement(parentIndex);
@@ -54,6 +56,9 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                 if (call instanceof ThreadRunInfo) {
                     ThreadRunInfo threadRun = (ThreadRunInfo) call;
                     element = new CallGraphReportElement(threadRun.getThread());
+                    spontaneousElement = new CallGraphReportSpontaneousElement();
+                    element.addSubElement(spontaneousElement);
+                    handleSubElement(node, 0, false, spontaneousElement, new CallGraphReportSubElement.Parent(-1));
                     elements.add(element);
                     for (CallTree.Node child : node.getChildren()) {
                         if (child.getData() instanceof MethodCallInfo) {
@@ -113,52 +118,61 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                         parent = new CallGraphReportSubElement.Parent(parentIndex);
                         subElement.addParent(parent);
                     }
-                    subElement.setCalls(subElement.getCalls() + 1);
-                    parent.setCalls(parent.getCalls() + 1);
-                    if (subElement.getCycleIndex() > 0) {
-                        subElement.setCycleCalls(subElement.getCycleCalls() + 1);
-                    }
-                    
-                    if (!recursive) {
-                        subElement.setTime(subElement.getTime().plus(methodCall.getTime()));
-                        parent.setTime(parent.getTime().plus(methodCall.getTime()));
-                    } 
-
-                    for (CallTree.Node child : node.getChildren()) {
-                        final MethodCallInfo childMethodCall = (MethodCallInfo) child.getData();
-                        if (childMethodCall.getMethod().equals(subElement.getMethod())) {
-                            subElement.setRecursiveCalls(subElement.getRecursiveCalls() + 1);
-                            parent.setRecursiveCalls(parent.getRecursiveCalls() + 1);
-                            indexTable.put(childMethodCall.getMethod(), index);
-                        } else {
-                            long childIndex;
-                            if (indexTable.containsKey(childMethodCall.getMethod())) {
-                                childIndex = indexTable.get(childMethodCall.getMethod());
-                            } else {
-                                childIndex = ++lastIndex;
-                                indexTable.put(childMethodCall.getMethod(), childIndex);
-                            }
-                            if (!subElement.getChildren().containsKey(childIndex)) {
-                                subElement.addChild(new CallGraphReportSubElement.Child(childIndex));
-                            }
-                            subElement.setChildrenTime(subElement.getChildrenTime().plus(childMethodCall.getTime()));
-                            parent.setChildrenTime(parent.getChildrenTime().plus(childMethodCall.getTime()));
-                        }
-                    }
+                    handleSubElement(node, index, recursive, subElement, parent);
                     parentStack.push(index);
                 }
             }
+
+            private void handleSubElement(
+                    CallTree.Node node, long index, boolean recursive,
+                    CallGraphReportSubElement subElement, CallGraphReportSubElement.Parent parent) {
+                CallInfo call = (CallInfo) node.getData();
+                subElement.setCalls(subElement.getCalls() + 1);
+                parent.setCalls(parent.getCalls() + 1);
+                if (subElement.getCycleIndex() > 0) {
+                    subElement.setCycleCalls(subElement.getCycleCalls() + 1);
+                }
+
+                if (!recursive) {
+                    subElement.setTime(subElement.getTime().plus(call.getTime()));
+                    parent.setTime(parent.getTime().plus(call.getTime()));
+                }
+
+                for (CallTree.Node child : node.getChildren()) {
+                    final MethodCallInfo childMethodCall = (MethodCallInfo) child.getData();
+                    if (childMethodCall.getMethod().equals(subElement.getMethod())) {
+                        subElement.setRecursiveCalls(subElement.getRecursiveCalls() + 1);
+                        parent.setRecursiveCalls(parent.getRecursiveCalls() + 1);
+                        indexTable.put(childMethodCall.getMethod(), index);
+                    } else {
+                        long childIndex;
+                        if (indexTable.containsKey(childMethodCall.getMethod())) {
+                            childIndex = indexTable.get(childMethodCall.getMethod());
+                        } else {
+                            childIndex = ++lastIndex;
+                            indexTable.put(childMethodCall.getMethod(), childIndex);
+                        }
+                        if (!subElement.getChildren().containsKey(childIndex)) {
+                            subElement.addChild(new CallGraphReportSubElement.Child(childIndex));
+                        }
+                        subElement.setChildrenTime(subElement.getChildrenTime().plus(childMethodCall.getTime()));
+                        parent.setChildrenTime(parent.getChildrenTime().plus(childMethodCall.getTime()));
+                    }
+                }
+            }
+
             @Override
             public void exit(CallTree.Node node) {
                 if (node.getData() instanceof ThreadRunInfo) {
                     ThreadRunInfo threadRun = (ThreadRunInfo) node.getData();
-                    /*
                     long totalTime = 0;
+                    element.getSubElements().remove(spontaneousElement);
                     for (CallGraphReportSubElement subElement : element.getSubElements()) {
-                        totalTime += subElement.getSelfTime().nanoseconds();
+                        if (!(subElement instanceof CallGraphReportWholeCycleElement)) {
+                            totalTime += subElement.getSelfTime().nanoseconds();
+                        }
                     }
                     threadRun.setTime(new CallTime(totalTime));
-                    */
                     threadRun.setTime(threadRun.getTime());
                     for (CallGraphReportSubElement subElement : element.getSubElements()) {
                         subElement.setTimePercent(((float) subElement.getTime().nanoseconds()) / threadRun.getTime().nanoseconds() * 100f);
@@ -166,34 +180,35 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                 } else if (node.getData() instanceof MethodCallInfo) {
                     MethodCallInfo methodCall = (MethodCallInfo) node.getData();
                     long index = indexTable.get(methodCall.getMethod());
+                    long parentIndex = parentStack.get(parentStack.size() - 2);
+                    boolean recursiveCall = index == parentIndex;
+                    if (recursiveCall) {
+                        for (int i = parentStack.size() - 1; i >= 0 && parentIndex == index; i--) {
+                            parentIndex = parentStack.get(i);
+                        }
+                    }
                     CallGraphReportSubElement subElement = element.getSubElement(index);
                     if (subElement.getCycleIndex() > 0) {
                         // the last element is not the parent call but the call.
-                        long parentIndex = parentStack.get(parentStack.size() - 2);
                         CallGraphReportSubElement.Parent parent = subElement.getParents().get(parentIndex);
                         CallGraphReportSubElement parentElement = element.getSubElement(parentIndex);
                         for (CallTree.Node childNode : node.getChildren()) {
                             MethodCallInfo childMethodCall = (MethodCallInfo) childNode.getData();
                             long childIndex = indexTable.get(childMethodCall.getMethod());
-                            CallGraphReportSubElement childElement = element.getSubElement(childIndex); 
-                            if (childElement.getCycleIndex() == subElement.getCycleIndex()) {
-                                if (parentElement != null && parentElement.getCycleIndex() == subElement.getCycleIndex()) {
-                                    parent.setTime(parent.getTime().minus(childMethodCall.getTime()));
-                                    parent.setChildrenTime(parent.getChildrenTime().minus(childMethodCall.getTime()));
+                            boolean recursiveChildCall = childIndex == index;
+                            if (!recursiveChildCall) {
+                                CallGraphReportSubElement childElement = element.getSubElement(childIndex); 
+                                if (childElement.getCycleIndex() == subElement.getCycleIndex()) {
+                                    if (parentElement != null && parentElement.getCycleIndex() == subElement.getCycleIndex()) {
+                                        parent.setTime(parent.getTime().minus(childMethodCall.getTime()));
+                                        parent.setChildrenTime(parent.getChildrenTime().minus(childMethodCall.getTime()));
+                                    }
+                                    subElement.setTime(subElement.getTime().minus(childMethodCall.getTime()));
+                                    subElement.setChildrenTime(subElement.getChildrenTime().minus(childMethodCall.getTime()));
                                 }
-                                subElement.setTime(subElement.getTime().minus(childMethodCall.getTime()));
-                                subElement.setChildrenTime(subElement.getChildrenTime().minus(childMethodCall.getTime()));
                             }
                         }
                         long cycleParentIndex = searchCycleParent(index, parentIndex);
-                        if (parentIndex != cycleParentIndex) {
-                            CallGraphReportSubElement.Parent cycleParent =
-                                    subElement.getParents().get(cycleParentIndex);
-                            if (cycleParent != null) {
-                                cycleParent.setChildrenTime(cycleParent.getChildrenTime().minus(methodCall.getTime()));
-                            }
-                        }
-                        
                         CallGraphReportWholeCycleElement cycleElement = cycleTable.get(subElement.getCycleIndex());
                         cycleElement.setCalls(cycleElement.getCalls() + 1);
                         if (parentIndex != cycleParentIndex) {
@@ -203,6 +218,32 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                             cycleElement.setChildrenTime(parent.getChildrenTime());
                             cycleElement.addChild(new CallGraphReportSubElement.Child(subElement.getIndex()));
                         }
+                        // when the parent of the method call isn't the parent of the cycle, 
+                        // the self time of the method call has to be subtracted from the children time of the parent of the cycle.
+                        if (parentIndex != cycleParentIndex) {
+                            CallGraphReportSubElement cycleParentElement = element.getSubElement(cycleParentIndex);
+                            CallGraphReportSubElement cycleEntryElement = null;
+                            for (CallGraphReportSubElement.Child child : cycleParentElement.getChildren().values()) {
+                                CallGraphReportSubElement childElement = element.getSubElement(child.getIndex());
+                                if (childElement.getCycleIndex() == subElement.getCycleIndex()) {
+                                    cycleEntryElement = childElement;
+                                }
+                            }
+                            CallGraphReportSubElement.Parent cycleParent = 
+                                    cycleEntryElement.getParents().get(cycleParentIndex);
+                            CallTime childrenTime = new CallTime(0);
+                            for (CallTree.Node childNode : node.getChildren()) {
+                                MethodCallInfo childCall = (MethodCallInfo) childNode.getData();
+                                // if the child call is recursion, doesn't count the time of the child call
+                                // as the children time but the self time of the method call.
+                                if (!childCall.getMethod().equals(methodCall.getMethod())) {
+                                    childrenTime = childrenTime.plus(childCall.getTime());
+                                }
+                            }
+                            CallTime selfTime = methodCall.getTime().minus(childrenTime);
+                            cycleParent.setChildrenTime(cycleParent.getChildrenTime().minus(selfTime));
+                        }
+                        
                     }
                 }
                 parentStack.pop();

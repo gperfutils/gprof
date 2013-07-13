@@ -89,12 +89,12 @@ index  % time  self  children  calls  name
     def "Prints a recursive method calls"() {
         when:
         def out = str(norm(tree(
-            methodCallNode("A", "a", 5500,
-                methodCallNode("A", "b", 4500,
+            methodCallNode("A", "a", 1000 + 4500,
+                methodCallNode("A", "b", 1000 + 500 + 3000,
                     methodCallNode("A", "c", 500),
-                    methodCallNode("A", "b", 3000,
+                    methodCallNode("A", "b", 1000 + 500 + 1500,
                         methodCallNode("A", "c", 500),
-                        methodCallNode("A", "b", 1500,
+                        methodCallNode("A", "b", 1000 + 500,
                             methodCallNode("A", "c", 500))))))))
         
         then:
@@ -166,8 +166,8 @@ index  % time  self  children  calls  name
         then:
         def expected ='''\
 index  % time  self  children  calls  name                    
-               4.00      0.00    1/1      <spontaneous>       
                                    1      A.b <cycle 1> [2]   
+               4.00      0.00    1/1      <spontaneous>       
 [1]      75.0  3.00      0.00    2+1  A.a <cycle 1> [1]       
                                    1      A.b <cycle 1> [2]   
 --------------------------------------------------------------
@@ -179,6 +179,7 @@ index  % time  self  children  calls  name
                3.00      0.00    2+1      A.a <cycle 1> [1]   
 --------------------------------------------------------------
 '''
+        out == expected
     }
 
 }
