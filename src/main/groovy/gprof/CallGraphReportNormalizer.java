@@ -16,13 +16,50 @@
 package gprof;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class CallGraphReportNormalizer implements ReportNormalizer {
+    
+    private void sortAndReindex(List<CallGraphReportElement> elements) {
+        Comparator subElementComparator = new Comparator<CallGraphReportSubElement>() {
+            @Override
+            public int compare(CallGraphReportSubElement e1, CallGraphReportSubElement e2) {
+                return -(e1.getTime().compareTo(e2.getTime()));
+            }
+        };
+        for (CallGraphReportElement element : elements) {
+            List<CallGraphReportSubElement> subElements = new ArrayList(element.getSubElements());
+            long fi = subElements.get(0).getIndex();
+            Collections.sort(subElements, subElementComparator);
+            Map<Long, Long> indexMapper = new HashMap();
+            indexMapper.put(0L, 0L); // the index of spontaneous is not changed (= 0)
+            element.getSubElements().clear();
+            for (int i = 0, n = subElements.size(); i < n; i++) {
+                CallGraphReportSubElement e = subElements.get(i);
+                long newIndex = i + fi;
+                long oldIndex = e.getIndex();
+                e.setIndex(newIndex);
+                indexMapper.put(oldIndex, newIndex);
+                element.addSubElement(e);
+            }
+            for (CallGraphReportSubElement e : element.getSubElements()) {
+                List<CallGraphReportSubElement.Parent> parents = new ArrayList(e.getParents().values()); 
+                e.getParents().clear();
+                for (CallGraphReportSubElement.Parent p : parents) {
+                    p.setIndex(indexMapper.get(p.getIndex()));
+                    e.addParent(p);
+                }
+                List<CallGraphReportSubElement.Child> children = new ArrayList(e.getChildren().values());
+                e.getChildren().clear();
+                for (CallGraphReportSubElement.Child c : children) {
+                    c.setIndex(indexMapper.get(c.getIndex()));
+                    e.addChild(c);
+                }
+            }
+            
+        }
+        
+    }
     
     public List<CallGraphReportElement> normalize(CallTree callTree) {
         final List<CallGraphReportElement> elements = new ArrayList();
@@ -249,6 +286,7 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                 parentStack.pop();
             }
         });
+        sortAndReindex(elements);
         return elements;
     }
 

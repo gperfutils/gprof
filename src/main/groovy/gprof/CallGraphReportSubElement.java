@@ -75,6 +75,10 @@ public class CallGraphReportSubElement implements ReportElement {
         public void setCycleCalls(long cycleCalls) {
             this.cycleCalls = cycleCalls;
         }
+        
+        public void setIndex(long index) {
+            this.index = index;
+        }
 
         public long getIndex() {
             return index;
@@ -129,6 +133,10 @@ public class CallGraphReportSubElement implements ReportElement {
         public Child(long index) {
             this.index = index;
         }
+        
+        public void setIndex(long index) {
+            this.index = index;
+        }
 
         public long getIndex() {
             return index;
@@ -168,12 +176,16 @@ public class CallGraphReportSubElement implements ReportElement {
     private long calls = 0;
     private long recursiveCalls = 0;
     private long cycleCalls = 0;
-    private Map<Long, Parent> parents = new HashMap(0);
-    private Map<Long, Child> children = new HashMap(0);
+    private SortedMap<Long, Parent> parents = new TreeMap();
+    private SortedMap<Long, Child> children = new TreeMap();
 
     public CallGraphReportSubElement(long index, MethodInfo method) {
         this.index = index;
         this.method = method;
+    }
+    
+    public void setIndex(long index) {
+        this.index = index;    
     }
 
     public long getIndex() {

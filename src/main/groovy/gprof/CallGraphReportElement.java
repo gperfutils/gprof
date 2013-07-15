@@ -20,7 +20,8 @@ import java.util.*;
 public class CallGraphReportElement implements ReportElement {
     
     private ThreadInfo thread;
-    private Map<Long, CallGraphReportSubElement> subElements = new HashMap();
+    
+    private TreeMap<Long, CallGraphReportSubElement> subElements = new TreeMap();
     
     public CallGraphReportElement(ThreadInfo thread) {
         this.thread = thread;
@@ -29,9 +30,9 @@ public class CallGraphReportElement implements ReportElement {
     public ThreadInfo getThread() {
         return thread;
     }
-
-    public void addSubElement(CallGraphReportSubElement methodElement) {
-        this.subElements.put(methodElement.getIndex(), methodElement);    
+    
+    public void addSubElement(CallGraphReportSubElement subElement) {
+        this.subElements.put(subElement.getIndex(), subElement);
     }
     
     public CallGraphReportSubElement getSubElement(long index) {
