@@ -15,32 +15,30 @@
  */
 package gprof;
 
-public class ProxyReport extends Report {
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
-    private Report delegate;
+public class ProxyReport extends Report {
+    
+    private Report flatReport;
+    private Report callGraphReport;
 
     public ProxyReport(CallTree callTree) {
         super(callTree);
-    }
-
-    public Report getFlat() {
-        delegate = new FlatReport(callTree);
-        return this;
-    }
-
-    public Report getCallGraph() {
-        delegate = new CallGraphReport(callTree);
-        return this;
+        flatReport = new FlatReport(callTree);
+        callGraphReport = new CallGraphReport(callTree);
     }
 
     @Override
-    public ReportPrinter getPrinter() {
-        return delegate.getPrinter();
-    }
-
-    @Override
-    public ReportNormalizer getNormalizer() {
-        return delegate.getNormalizer();
+    public void prettyPrint(PrintWriter writer) {
+        writer.println("Flat:");
+        writer.println();
+        flatReport.prettyPrint(writer);
+        writer.println();
+        writer.println("Call graph:");
+        writer.println();
+        callGraphReport.prettyPrint(writer);
     }
 
 }

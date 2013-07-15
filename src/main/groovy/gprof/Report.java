@@ -20,25 +20,12 @@ import java.util.List;
 
 public abstract class Report {
 
-    private List<? extends ReportElement> elements;
     protected CallTree callTree;
 
     public Report(CallTree callTree) {
         this.callTree = callTree;
     }
 
-    public abstract ReportPrinter getPrinter();
-    public abstract ReportNormalizer getNormalizer();
-
-    public void prettyPrint(PrintWriter writer) {
-        getPrinter().print(getElements(), writer);
-    }
-
-    public List<? extends ReportElement> getElements() {
-        if (elements == null) {
-            elements = getNormalizer().normalize(callTree);
-        }
-        return elements;
-    }
+    public abstract void prettyPrint(PrintWriter writer);
 
 }

@@ -15,21 +15,20 @@
  */
 package gprof;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 public class CallGraphReport extends Report {
+    
+    private List<CallGraphReportElement> elements;
 
     public CallGraphReport(CallTree callTree) {
         super(callTree);
+        elements = new CallGraphReportNormalizer().normalize(callTree);
     }
 
-    @Override
-    public ReportPrinter getPrinter() {
-        return new CallGraphReportPrinter();
+    public void prettyPrint(PrintWriter writer) {
+        new CallGraphReportPrinter().print(elements, writer); 
     }
-
-    @Override
-    public ReportNormalizer getNormalizer() {
-        return new CallGraphReportNormalizer();
-    }
-
 
 }

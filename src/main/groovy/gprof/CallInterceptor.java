@@ -62,10 +62,11 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             }
         }
         CallTree tree = new CallTree(profThread);
+        ThreadRunInfo mainThreadRun = (ThreadRunInfo) tree.getRoot().getData();
         for (LocalInterceptor interceptor : interceptors.values()) {
             CallTree theTree = interceptor.getTree();
-            ThreadRunInfo theThread = (ThreadRunInfo) theTree.getRoot().getData();
-            if (theThread.equals(profThread)) {
+            ThreadRunInfo threadRun = (ThreadRunInfo) theTree.getRoot().getData();
+            if (threadRun.equals(mainThreadRun)) {
                 for (CallTree.Node child : theTree.getRoot().getChildren()) {
                     tree.getRoot().addChild(child);
                 }

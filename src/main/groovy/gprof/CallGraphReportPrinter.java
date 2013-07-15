@@ -49,8 +49,8 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             return String.format("<cycle %d>", number);    
         }
         
-        public static String time(long nanotime) {
-            return TIME_FORMAT.format(nanotime * 0.001);
+        public static String time(long ns) {
+            return TIME_FORMAT.format(ns * 0.000001);
         }
 
         public static String percent(double percent) {

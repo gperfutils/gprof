@@ -15,18 +15,20 @@
  */
 package gprof;
 
+import java.io.PrintWriter;
+import java.util.List;
+
 public class FlatReport extends Report {
+    
+    private List<FlatReportElement> elements;
 
     public FlatReport(CallTree callTree) {
         super(callTree);
+        elements = new FlatReportNormalizer().normalize(callTree);
     }
-
-    public ReportPrinter getPrinter() {
-        return new FlatReportPrinter();
-    }
-
-    public ReportNormalizer getNormalizer() {
-        return new FlatReportNormalizer();
+    
+    public void prettyPrint(PrintWriter writer) {
+        new FlatReportPrinter().print(elements, writer);
     }
 
 }
