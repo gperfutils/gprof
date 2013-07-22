@@ -13,25 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof.callgraph;
 
-import java.util.concurrent.Callable;
+import gprof.MethodInfo;
 
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
-
-    static Report profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
+public class CallGraphReportWholeCycleElement extends CallGraphReportMethodElement {
+    
+    static final MethodInfo NON_METHOD = new MethodInfo("", "");
+    
+    public CallGraphReportWholeCycleElement(long index, long cycleIndex) {
+        super(index, NON_METHOD);
+        this.setCycleIndex(cycleIndex);
     }
-
-    static Report profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
-    }
-
 }

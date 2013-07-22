@@ -13,25 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof;
 
-import java.util.concurrent.Callable;
+public abstract class CallInfo {
 
-/**
- * <pre>
- * profile {
- *     // ...
- * }
- * </pre>
- */
-public class ProfileStaticExtension {
+    private CallTime time = new CallTime(0);
 
-    static Report profile(Object selfType, Callable profiled) {
-        return new Profiler().run(profiled);
+    public void setTime(CallTime time) {
+        this.time = time;
     }
 
-    static Report profile(Object selfType, Map options, Callable profiled) {
-        return new Profiler().run(options, profiled);
+    public CallTime getTime() {
+        return time;
     }
 
 }

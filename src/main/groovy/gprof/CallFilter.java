@@ -18,13 +18,13 @@ package gprof;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileFilter {
+public class CallFilter {
 
-    private List<ProfileMatcher> includes = new ArrayList();
-    private List<ProfileMatcher> excludes = new ArrayList();
+    private List<CallMatcher> includes = new ArrayList();
+    private List<CallMatcher> excludes = new ArrayList();
 
     public void addInclude(String pattern) {
-        this.includes.add(new ProfileMatcher(pattern));
+        this.includes.add(new CallMatcher(pattern));
     }
 
     public void addIncludes(List<String> patterns) {
@@ -34,7 +34,7 @@ public class ProfileFilter {
     }
 
     public void addExclude(String pattern) {
-        this.excludes.add(new ProfileMatcher(pattern));
+        this.excludes.add(new CallMatcher(pattern));
     }
 
     public void addExcludes(List<String> patterns) {
@@ -46,7 +46,7 @@ public class ProfileFilter {
     public boolean accept(String text) {
         if (!includes.isEmpty()) {
             boolean included = false;
-            for (ProfileMatcher include : includes) {
+            for (CallMatcher include : includes) {
                 if (include.match(text)) {
                     included = true;
                     break;
@@ -58,7 +58,7 @@ public class ProfileFilter {
         }
         if (!excludes.isEmpty()) {
             boolean excluded = false;
-            for (ProfileMatcher exclude : excludes) {
+            for (CallMatcher exclude : excludes) {
                 if (exclude.match(text)) {
                     excluded = true;
                     break;

@@ -38,16 +38,16 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
 
-    private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
+    private List<ProxyMetaClass> proxyMetaClasses = new ArrayList();
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private List<MetaClass> originalMetaClasses = new ArrayList();
-    private ProfileInterceptor interceptor;
+    private CallInterceptor interceptor;
 
-    public Profile run(Callable profiled) {
+    public Report run(Callable profiled) {
         return run(Collections.<String, Object>emptyMap(), profiled);
     }
 
-    public Profile run(Map<String, Object> options, Callable profiled) {
+    public Report run(Map<String, Object> options, Callable profiled) {
         try {
             start(options);
             try {
@@ -56,7 +56,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
                 e.printStackTrace();
             }
             stop();
-            return getResult();
+            return getReport();
         } finally {
             reset();
         }
@@ -69,14 +69,14 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     public void start(Map<String, Object> options) {
         Map<String, Object> opts = new HashMap(defaultOptions);
         opts.putAll(options);
-        ProfileMethodFilter methodFilter = new ProfileMethodFilter();
+        MethodCallFilter methodFilter = new MethodCallFilter();
         methodFilter.addIncludes((List) opts.get("includeMethods"));
         methodFilter.addExcludes((List) opts.get("excludeMethods"));
-        ProfileThreadFilter threadFilter = new ProfileThreadFilter();
+        ThreadRunFilter threadFilter = new ThreadRunFilter();
         threadFilter.addIncludes((List) opts.get("includeThreads"));
         threadFilter.addExcludes((List) opts.get("excludeThreads"));
         if (interceptor == null) {
-            this.interceptor = new ProfileInterceptor(methodFilter, threadFilter);
+            this.interceptor = new CallInterceptor(methodFilter, threadFilter);
         }
 
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
@@ -107,7 +107,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         registry.setMetaClassCreationHandle(originalMetaClassCreationHandle);
-        for (ProfileMetaClass metaClass : proxyMetaClasses) {
+        for (ProxyMetaClass metaClass : proxyMetaClasses) {
             // clean registry and delegate creating normal meta class for original handle
             registry.removeMetaClass(metaClass.getTheClass());
         }
@@ -120,16 +120,16 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         interceptor = null;
     }
 
-    public Profile getResult() {
-        return new Profile(interceptor.getTree());
+    public Report getReport() {
+        return new ProxyReport(interceptor.getTree());
     }
 
     @Override
     protected MetaClass createNormalMetaClass(Class theClass, MetaClassRegistry registry) {
-        if (theClass != ProfileMetaClass.class) {
+        if (theClass != ProxyMetaClass.class) {
             try {
-                ProfileMetaClass proxyMetaClass =
-                        new ProfileMetaClass(registry, theClass, new MetaClassImpl(registry, theClass));
+                ProxyMetaClass proxyMetaClass =
+                        new ProxyMetaClass(registry, theClass, new MetaClassImpl(registry, theClass));
                 proxyMetaClass.setInterceptor(interceptor);
                 proxyMetaClasses.add(proxyMetaClass);
                 return proxyMetaClass;

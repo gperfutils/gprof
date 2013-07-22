@@ -17,10 +17,10 @@ package gprof
 
 import org.junit.Test
 
-class ProfileMatcherTest {
+class CallMatcherTest {
 
     @Test void "does not use wildcards"() {
-        def matcher = new ProfileMatcher("java.lang.String.getClass")
+        def matcher = new CallMatcher("java.lang.String.getClass")
         assert matcher.match("java.lang.String.getClass")
         assert !matcher.match("java.lang.String.getClassLoader")
     }
@@ -28,34 +28,34 @@ class ProfileMatcherTest {
     @Test void "use '*' wildcard"() {
         def matcher
 
-        matcher = new ProfileMatcher("*")
+        matcher = new CallMatcher("*")
         assert matcher.match("java.lang.String.ctor")
         assert matcher.match("")
 
-        matcher = new ProfileMatcher("****")
+        matcher = new CallMatcher("****")
         assert matcher.match("java.lang.String.ctor")
         assert matcher.match("")
 
-        matcher = new ProfileMatcher("java.*")
+        matcher = new CallMatcher("java.*")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("javax.lang.String.ctor")
         assert !matcher.match("xjava.lang.String.ctor")
 
-        matcher = new ProfileMatcher("*.ctor")
+        matcher = new CallMatcher("*.ctor")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("java.lang.String.size")
         assert !matcher.match("java.lang.String.ctorx")
 
-        matcher = new ProfileMatcher("java.*.ctor")
+        matcher = new CallMatcher("java.*.ctor")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("java.lang.String.size")
         assert !matcher.match("javax.lang.String.ctor")
 
-        matcher = new ProfileMatcher("*.lang.*")
+        matcher = new CallMatcher("*.lang.*")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("java.util.List.ctor")
 
-        matcher = new ProfileMatcher("*.*.*")
+        matcher = new CallMatcher("*.*.*")
         assert matcher.match("java.lang.String.ctor")
         assert !matcher.match("Foo.ctor")
     }
@@ -63,23 +63,23 @@ class ProfileMatcherTest {
     @Test void "use '?' wildcard"() {
         def matcher
 
-        matcher = new ProfileMatcher("?")
+        matcher = new CallMatcher("?")
         assert matcher.match("A")
         assert !matcher.match("")
 
-        matcher = new ProfileMatcher("??")
+        matcher = new CallMatcher("??")
         assert matcher.match("AA")
         assert !matcher.match("A")
 
-        matcher = new ProfileMatcher("?.a")
+        matcher = new CallMatcher("?.a")
         assert matcher.match("A.a")
         assert !matcher.match("AA.a")
 
-        matcher = new ProfileMatcher("A.?")
+        matcher = new CallMatcher("A.?")
         assert matcher.match("A.a")
         assert !matcher.match("A.aa")
 
-        matcher = new ProfileMatcher("?.?")
+        matcher = new CallMatcher("?.?")
         assert matcher.match("A.a")
         assert !matcher.match("A.aa")
     }

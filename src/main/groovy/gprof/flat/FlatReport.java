@@ -13,12 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof.flat;
 
-public class ProfileMethodFilter extends ProfileFilter {
+import gprof.CallTree;
+import gprof.Report;
 
-    public boolean accept(String className, String methodName) {
-        return accept(className + "." + methodName);
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.Map;
+
+public class FlatReport extends Report {
+
+    public FlatReport(CallTree callTree) {
+        super(callTree);
+    }
+    
+    @Override
+    public void prettyPrint(Map args, PrintWriter writer) {
+        FlatReportNormalizer normalizer = new FlatReportNormalizer();
+        List<FlatReportElement> elements = normalizer.normalize(callTree);
+        FlatReportPrinter printer = new FlatReportPrinter();
+        printer.print(elements, writer);
     }
 
 }

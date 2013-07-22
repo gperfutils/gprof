@@ -13,24 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof.flat;
+
+import gprof.ReportPrinter;
 
 import java.io.PrintWriter;
 import java.util.*;
 
-public class ProfileFlatPrinter {
+import static gprof.flat.FlatReportPrinter.COLUMN.CALLS;
+
+public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
     private static String SP = "  ";
 
-    private List<ProfileMethodEntry> methodEntries = new ArrayList();
-
-    public ProfileFlatPrinter(List<ProfileMethodEntry> methodEntries) {
-        this.methodEntries = methodEntries;
-    }
-
-    public void print(PrintWriter writer, Comparator<ProfileMethodEntry> comparator) {
-        Collections.sort(methodEntries, comparator);
-        List<Map<COLUMN, String>> rows = createRowValueList();
+    @Override
+    public void print(List<FlatReportElement> elements, PrintWriter writer) {
+        Collections.sort(elements, new DefaultComparator());
+        List<Map<COLUMN, String>> rows = createRowValueList(elements);
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
         writeHeader(writer, columnSizeMap);
         writeRows(writer, rows, columnSizeMap);
@@ -66,8 +65,21 @@ public class ProfileFlatPrinter {
             if (i > 0) {
                 headerFormatBuff.append(SP);
             }
-            int columnSize = columnSizeMap.get(columns[i]);
-            headerFormatBuff.append(String.format("%%-%ds", columnSize));
+            COLUMN column = columns[i];
+            columnSizeMap.get(columns[i]);
+            int columnSize = columnSizeMap.get(column);
+            switch (column) {
+                case CALLS:
+                case TIME_TOTAL:
+                case TIME_MAX:
+                case TIME_MIN:
+                case TIME_AVG:
+                    headerFormatBuff.append(String.format("%%%ds", columnSize));
+                    break;
+                default:
+                    headerFormatBuff.append(String.format("%%-%ds", columnSize));
+                    break;
+            }
         }
         String headerFormat = headerFormatBuff.append("%n").toString();
         Object[] headerValues = new String[columnNum];
@@ -90,18 +102,18 @@ public class ProfileFlatPrinter {
         return colSizeMap;
     }
 
-    private List<Map<COLUMN, String>> createRowValueList() {
-        List<Map<COLUMN, String>> rows = new ArrayList(methodEntries.size());
-        for (ProfileMethodEntry methodEntry : methodEntries) {
+    private List<Map<COLUMN, String>> createRowValueList(List<FlatReportElement> elements) {
+        List<Map<COLUMN, String>> rows = new ArrayList(elements.size());
+        for (FlatReportElement element : elements) {
             Map<COLUMN, String> row = new HashMap();
-            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", methodEntry.getPercent()));
-            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", methodEntry.getTime().milliseconds()));
-            row.put(COLUMN.CALLS, String.format("%d", methodEntry.getCallEntries().size()));
-            row.put(COLUMN.TIME_MIN, String.format("%.2f", methodEntry.getMinTime().milliseconds()));
-            row.put(COLUMN.TIME_MAX, String.format("%.2f", methodEntry.getMaxTime().milliseconds()));
-            row.put(COLUMN.TIME_AVG, String.format("%.2f", methodEntry.getTimePerCall().milliseconds()));
-            row.put(COLUMN.METHOD_NAME, methodEntry.getMethodName());
-            row.put(COLUMN.CLASS_NAME, methodEntry.getClassName());
+            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", element.getTimePercent()));
+            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime().milliseconds()));
+            row.put(CALLS, String.format("%d", element.getCalls()));
+            row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime().milliseconds()));
+            row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime().milliseconds()));
+            row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall().milliseconds()));
+            row.put(COLUMN.METHOD_NAME, element.getMethod().getMethodName());
+            row.put(COLUMN.CLASS_NAME, element.getMethod().getClassName());
             rows.add(row);
         }
         return rows;
@@ -124,6 +136,24 @@ public class ProfileFlatPrinter {
         COLUMN(String name, String format) {
             this.name = name;
             this.format = format;
+        }
+    }
+
+    static class DefaultComparator implements Comparator<FlatReportElement> {
+
+        @Override
+        public int compare(FlatReportElement o1, FlatReportElement o2) {
+            int r = -(o1.getTime().compareTo(o2.getTime()));
+            if (r == 0) {
+                r = -(((Long) o1.getCalls()).compareTo(o2.getCalls()));
+                if (r == 0) {
+                    r = o1.getMethod().getClassName().compareTo(o2.getMethod().getClassName());
+                    if (r == 0) {
+                        r = o1.getMethod().getMethodName().compareTo(o2.getMethod().getMethodName());
+                    }
+                }
+            }
+            return r;
         }
     }
 

@@ -18,13 +18,13 @@ package gprof
 import org.junit.Test
 
 
-class ProfileInterceptorTest {
+class CallInterceptorTest {
 
     @Test void "excludes and includes threads"() {
-        def filter = new ProfileThreadFilter();
+        def filter = new ThreadRunFilter();
         filter.addInclude("thread-")
         filter.addExclude("thread-2")
-        def interceptor = new ProfileInterceptor(new ProfileMethodFilter(), filter)
+        def interceptor = new CallInterceptor(new MethodCallFilter(), filter)
 
         def excludes = []
         def includes = []
@@ -41,20 +41,22 @@ class ProfileInterceptorTest {
             excludes << "java.util.LinkedList.ctor"
         }
 
-        interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
-            void visit(ProfileCallTree.Node node) {
-                def name = node.data.className + "." + node.data.methodName
-                assert includes.contains(name)
-                assert !excludes.contains(name)
+        interceptor.tree.visit(new CallTree.NodeVisitor() {
+            void visit(CallTree.Node node) {
+                if (node instanceof MethodCallInfo) {
+                    def name = node.data.className + "." + node.data.methodName
+                    assert includes.contains(name)
+                    assert !excludes.contains(name)
+                }
             }
         })
     }
 
     @Test void "excludes and includes methods"() {
-        def filter = new ProfileMethodFilter()
+        def filter = new MethodCallFilter()
         filter.addIncludes([ "java.lang.*", "java.util.*" ])
         filter.addExcludes([ "java.lang.String.*", "java.util.List.*" ])
-        def interceptor = new ProfileInterceptor(filter, new ProfileThreadFilter())
+        def interceptor = new CallInterceptor(filter, new ThreadRunFilter())
 
         def excludes = []
         def includes = []
@@ -76,11 +78,13 @@ class ProfileInterceptorTest {
         interceptor.afterInvoke(arrayList, "ctor", null, null)
         includes << "java.util.ArrayList.ctor"
 
-        interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
-            void visit(ProfileCallTree.Node node) {
-                def name = node.data.className + "." + node.data.methodName
-                assert includes.contains(name)
-                assert !excludes.contains(name)
+        interceptor.tree.visit(new CallTree.NodeVisitor() {
+            void visit(CallTree.Node node) {
+                if (node instanceof MethodCallInfo) {
+                    def name = node.data.className + "." + node.data.methodName
+                    assert includes.contains(name)
+                    assert !excludes.contains(name)
+                }
             }
         })
 
@@ -91,7 +95,7 @@ class ProfileInterceptorTest {
         def depth1 = { Thread.sleep 200 }
         def depth2 = { Thread.sleep 300 }
 
-        def interceptor = new ProfileInterceptor(new ProfileMethodFilter(), new ProfileThreadFilter());
+        def interceptor = new CallInterceptor(new MethodCallFilter(), new ThreadRunFilter());
         interceptor.beforeInvoke(depth0, "call", null)
         depth0()
         interceptor.beforeInvoke(depth1, "call", null)
@@ -102,14 +106,16 @@ class ProfileInterceptorTest {
         interceptor.afterInvoke(depth1, "call", null, null)
         interceptor.afterInvoke(depth0, "call", null, null)
 
-        interceptor.tree.visit(new ProfileCallTree.NodeVisitor() {
-            def lastNode = null
-            void visit(ProfileCallTree.Node node) {
-                if (lastNode != null) {
-                    assert node.parent == lastNode
-                    assert node.data.time > lastNode.data.time
+        interceptor.tree.visit(new CallTree.NodeVisitor() {
+            def lastCall = null
+            void visit(CallTree.Node node) {
+                if (lastCall != null) {
+                    assert node.parent.data == lastCall
+                    assert node.data.time > lastCall.time
                 }
-                lastNode = node
+                if (node.data instanceof MethodCallInfo) {
+                    lastCall = node.data
+                }
             }
         })
     }

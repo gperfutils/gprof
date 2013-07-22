@@ -1,23 +1,24 @@
 package gprof
 
-import org.junit.Test
+import gprof.flat.FlatReportNormalizer
+import spock.lang.Specification
 
-import java.util.concurrent.Callable
+@Mixin(TestHelper)
+class ProfilerTest extends Specification {
 
-import static org.junit.Assert.*
+    def flatten(CallTree callTree) {
+        return new FlatReportNormalizer().normalize(callTree)
+    }
 
-class ProfilerTest {
-
-    @Test void startAndStop() {
+    def "Start and stop profiling"() {
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
-            if (e.className == Thread.class.name &&
-                e.methodName == "sleep" &&
-                e.callEntries.size() == 1) {
+        flatten(p.report.callTree).find { e ->
+            if (e.method == method(Thread.class.name, "sleep") &&
+                e.calls == 1) {
                 b = true
                 return false
             }
@@ -26,7 +27,7 @@ class ProfilerTest {
         assert b
     }
 
-    @Test void restart() {
+    def "Restart profiling"() {
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
@@ -35,10 +36,9 @@ class ProfilerTest {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
-            if (e.className == Thread.class.name &&
-                e.methodName == "sleep" &&
-                e.callEntries.size() == 2) {
+        flatten(p.report.callTree).find { e ->
+            if (e.method == method(Thread.class.name, "sleep") &&
+                e.calls == 2) {
                 b = true
                 return false
             }
@@ -47,7 +47,7 @@ class ProfilerTest {
         assert b
     }
 
-    @Test void reset() {
+    def "Reset profiling"() {
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
@@ -57,10 +57,9 @@ class ProfilerTest {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        p.result.methodEntries.find { e ->
-            if (e.className == Thread.class.name &&
-                e.methodName == "sleep" &&
-                e.callEntries.size() == 1) {
+        flatten(p.report.callTree).find { e ->
+            if (e.method == method(Thread.class.name, "sleep") &&
+                e.calls == 1) {
                 b = true
                 return false
             }

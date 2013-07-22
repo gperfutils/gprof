@@ -15,21 +15,22 @@
  */
 package gprof;
 
-import groovy.lang.Closure;
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class ProfileCallTree {
+public class CallTree {
 
     private Node root;
 
-    public ProfileCallTree() {
-        this.root = new Node(null);
+    public CallTree(Thread thread) {
+        this.root = new Node(new ThreadRunInfo(thread));
     }
 
     public void visit(NodeVisitor visitor) {
+        visitor.visit(root);
         root.visit(visitor);
+        visitor.exit(root);
     }
 
     public Node getRoot() {
@@ -43,11 +44,11 @@ public class ProfileCallTree {
 
     public static class Node {
 
-        private ProfileCallEntry data;
+        private CallInfo data;
         private Node parent;
-        private List<Node> children;
+        private List<Node> children = new ArrayList();
 
-        public Node(ProfileCallEntry data) {
+        public Node(CallInfo data) {
             this.data = data;
         }
 
@@ -64,21 +65,24 @@ public class ProfileCallTree {
         }
 
         public void addChild(Node child) {
-            getChildren().add(child);
+            children.add(child);
+            child.setParent(this);
+        }
+
+        public void removeChild(Node child) {
+            children.remove(child);
+            child.setParent(null);
         }
 
         public List<Node> getChildren() {
-            if (children == null) {
-                children = new ArrayList(1);
-            }
-            return children;
+            return Collections.unmodifiableList(children);
         }
 
         public boolean hasChildren() {
             return children != null;
         }
 
-        public ProfileCallEntry getData() {
+        public CallInfo getData() {
             return data;
         }
 

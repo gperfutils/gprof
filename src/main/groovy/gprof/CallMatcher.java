@@ -18,11 +18,11 @@ package gprof;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileMatcher {
+public class CallMatcher {
 
     private char[] pattern;
 
-    public ProfileMatcher(String pattern) {
+    public CallMatcher(String pattern) {
         this.pattern = (pattern + '\0').toCharArray();
     }
 

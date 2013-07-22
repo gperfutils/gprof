@@ -15,10 +15,23 @@
  */
 package gprof;
 
-public class ProfileThreadFilter extends ProfileFilter {
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-    public boolean accept(Thread thread) {
-        return accept(thread.getName());
+public abstract class Report {
+
+    protected CallTree callTree;
+
+    public Report(CallTree callTree) {
+        this.callTree = callTree;
     }
+
+    public void prettyPrint(PrintWriter writer) {
+        prettyPrint(Collections.emptyMap(), writer);
+    }
+    
+    public abstract void prettyPrint(Map args, PrintWriter writer);
 
 }

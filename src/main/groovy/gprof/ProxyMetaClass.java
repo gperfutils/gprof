@@ -17,13 +17,12 @@ package gprof;
 
 import groovy.lang.MetaClass;
 import groovy.lang.MetaClassRegistry;
-import groovy.lang.ProxyMetaClass;
 
 import java.beans.IntrospectionException;
 
-public class ProfileMetaClass extends ProxyMetaClass {
+public class ProxyMetaClass extends groovy.lang.ProxyMetaClass {
 
-    public ProfileMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee)
+    public ProxyMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee)
             throws IntrospectionException {
         super(registry, theClass, adaptee);
     }

@@ -17,16 +17,16 @@ package gprof
 
 import org.junit.Test
 
-class ProfileFilterTest {
+class CallFilterTest {
 
     @Test void "accept all"() {
-        def filter = new ProfileMethodFilter()
+        def filter = new MethodCallFilter()
         assert filter.accept("abc")
         assert filter.accept("acb")
     }
 
     @Test void "pattern to include contains pattern to exclude"() {
-        def filter = new ProfileMethodFilter()
+        def filter = new MethodCallFilter()
         filter.addInclude("a*")
         filter.addExclude("ab*")
         assert filter.accept("acb")
@@ -34,7 +34,7 @@ class ProfileFilterTest {
     }
 
     @Test void "pattern to exclude contains pattern to include"() {
-        def filter = new ProfileMethodFilter()
+        def filter = new MethodCallFilter()
         filter.addInclude("ab*")
         filter.addExclude("a*")
         assert !filter.accept("acb")

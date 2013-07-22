@@ -15,19 +15,13 @@
  */
 package gprof;
 
-public class ProfileCallEntry {
+public class MethodInfo {
 
-    private String className;
-    private String methodName;
-    private ProfileTime time;
+    private String className, methodName;
 
-    public ProfileCallEntry(String className, String methodName) {
+    public MethodInfo(String className, String methodName) {
         this.className = className;
         this.methodName = methodName;
-    }
-
-    public void setTime(ProfileTime time) {
-        this.time = time;
     }
 
     public String getClassName() {
@@ -38,20 +32,36 @@ public class ProfileCallEntry {
         return methodName;
     }
 
-    public ProfileTime getTime() {
-        return time;
-    }
-
     public String getName() {
         return className + "." + methodName;
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MethodInfo that = (MethodInfo) o;
+
+        if (className != null ? !className.equals(that.className) : that.className != null) return false;
+        if (methodName != null ? !methodName.equals(that.methodName) : that.methodName != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = className != null ? className.hashCode() : 0;
+        result = 31 * result + (methodName != null ? methodName.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public String toString() {
-        return "ProfileCallEntry{" +
+        return "MethodInfo{" +
                 "className='" + className + '\'' +
                 ", methodName='" + methodName + '\'' +
-                ", time=" + time +
                 '}';
     }
+
 }
