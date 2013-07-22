@@ -13,21 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-import groovyx.gprof.*
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Map;
 
-def doSomething() {
-    Thread.sleep(100)
+public abstract class Report {
+
+    protected CallTree callTree;
+
+    public Report(CallTree callTree) {
+        this.callTree = callTree;
+    }
+
+    public void prettyPrint(PrintWriter writer) {
+        prettyPrint(Collections.emptyMap(), writer);
+    }
+    
+    public abstract void prettyPrint(Map args, PrintWriter writer);
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

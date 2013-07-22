@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-import groovyx.gprof.*
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassRegistry;
 
-def doSomething() {
-    Thread.sleep(100)
+import java.beans.IntrospectionException;
+
+public class ProxyMetaClass extends groovy.lang.ProxyMetaClass {
+
+    public ProxyMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee)
+            throws IntrospectionException {
+        super(registry, theClass, adaptee);
+    }
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

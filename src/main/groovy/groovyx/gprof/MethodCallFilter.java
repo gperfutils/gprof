@@ -13,21 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-import groovyx.gprof.*
+public class MethodCallFilter extends CallFilter {
 
-def doSomething() {
-    Thread.sleep(100)
+    public boolean accept(MethodInfo method) {
+        return accept(method.getName());
+    }
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

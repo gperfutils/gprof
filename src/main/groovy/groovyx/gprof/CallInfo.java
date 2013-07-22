@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-import groovyx.gprof.*
+public abstract class CallInfo {
 
-def doSomething() {
-    Thread.sleep(100)
+    private CallTime time = new CallTime(0);
+
+    public void setTime(CallTime time) {
+        this.time = time;
+    }
+
+    public CallTime getTime() {
+        return time;
+    }
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

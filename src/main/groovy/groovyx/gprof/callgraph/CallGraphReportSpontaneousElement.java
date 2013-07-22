@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof.callgraph;
 
-import groovyx.gprof.*
+import groovyx.gprof.MethodInfo;
 
-def doSomething() {
-    Thread.sleep(100)
+public class CallGraphReportSpontaneousElement extends CallGraphReportMethodElement {
+    
+    static final MethodInfo NON_METHOD = new MethodInfo("", "");
+    
+    public CallGraphReportSpontaneousElement() {
+        super(0, NON_METHOD);
+        setCalls(1);
+    }
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

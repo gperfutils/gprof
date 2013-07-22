@@ -13,21 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof
 
-import groovyx.gprof.*
+import java.util.concurrent.Callable;
 
-def doSomething() {
-    Thread.sleep(100)
+/**
+ * <pre>
+ * profile {
+ *     // ...
+ * }
+ * </pre>
+ */
+public class ProfileStaticExtension {
+
+    static Report profile(Object selfType, Callable profiled) {
+        return new Profiler().run(profiled);
+    }
+
+    static Report profile(Object selfType, Map options, Callable profiled) {
+        return new Profiler().run(options, profiled);
+    }
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

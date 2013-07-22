@@ -13,21 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-import groovyx.gprof.*
+import java.util.List;
 
-def doSomething() {
-    Thread.sleep(100)
+public interface ReportNormalizer {
+
+    List<? extends ReportElement> normalize(CallTree callTree);
+
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()

@@ -13,21 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof.callgraph;
 
-import groovyx.gprof.*
+import groovyx.gprof.ReportElement;
 
-def doSomething() {
-    Thread.sleep(100)
+public interface CallGraphReportElement extends ReportElement {
 }
-
-def profiler = new Profiler()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.start()
-doSomething()
-profiler.stop()
-
-profiler.result.prettyPrint()
