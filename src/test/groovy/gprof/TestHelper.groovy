@@ -54,9 +54,9 @@ class TestHelper {
         new MethodInfo(className, methodName)
     }
 
-    def methodCall(className, methodName, long us) {
+    def methodCall(className, methodName, long ms) {
         def call = new MethodCallInfo(method(className, methodName))
-        call.time = new CallTime(us * 1000)
+        call.time = new CallTime(ms * 1000000)
         call
     }
 

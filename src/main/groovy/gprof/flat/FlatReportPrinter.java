@@ -20,6 +20,8 @@ import gprof.ReportPrinter;
 import java.io.PrintWriter;
 import java.util.*;
 
+import static gprof.flat.FlatReportPrinter.COLUMN.CALLS;
+
 public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
     private static String SP = "  ";
@@ -66,8 +68,21 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
             if (i > 0) {
                 headerFormatBuff.append(SP);
             }
-            int columnSize = columnSizeMap.get(columns[i]);
-            headerFormatBuff.append(String.format("%%-%ds", columnSize));
+            COLUMN column = columns[i];
+            columnSizeMap.get(columns[i]);
+            int columnSize = columnSizeMap.get(column);
+            switch (column) {
+                case CALLS:
+                case TIME_TOTAL:
+                case TIME_MAX:
+                case TIME_MIN:
+                case TIME_AVG:
+                    headerFormatBuff.append(String.format("%%%ds", columnSize));
+                    break;
+                default:
+                    headerFormatBuff.append(String.format("%%-%ds", columnSize));
+                    break;
+            }
         }
         String headerFormat = headerFormatBuff.append("%n").toString();
         Object[] headerValues = new String[columnNum];
@@ -96,7 +111,7 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
             Map<COLUMN, String> row = new HashMap();
             row.put(COLUMN.TIME_PERCENT, String.format("%.2f", element.getTimePercent()));
             row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime().milliseconds()));
-            row.put(COLUMN.CALLS, String.format("%d", element.getCalls()));
+            row.put(CALLS, String.format("%d", element.getCalls()));
             row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime().milliseconds()));
             row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime().milliseconds()));
             row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall().milliseconds()));

@@ -30,8 +30,8 @@ class CallGraphReportNormalizerTest extends Specification {
         new CallGraphReportNormalizer().normalize(tree)
     }
     
-    def time(long us) {
-        new CallTime(us * 1000)
+    def time(long ms) {
+        new CallTime(ms * 1000000)
     }
     
     def parent(args) {

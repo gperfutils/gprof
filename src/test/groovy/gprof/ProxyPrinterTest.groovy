@@ -36,8 +36,8 @@ class ProxyPrinterTest extends Specification {
         def expected = """\
 Flat:
 
-%       calls  total ms  ms/call  min ms  max ms  method  class
-100.00      1      1.00     1.00    1.00    1.00  a       A    
+%       calls  total ms  ms/call   min ms   max ms  method  class
+100.00      1   1000.00  1000.00  1000.00  1000.00  a       A    
 
 Call graph:
 

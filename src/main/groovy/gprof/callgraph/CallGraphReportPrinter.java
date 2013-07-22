@@ -61,7 +61,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
         }
         
         public static String time(long ns) {
-            return TIME_FORMAT.format(ns * 0.000001);
+            return TIME_FORMAT.format(ns * 0.000000001);
         }
 
         public static String percent(double percent) {
