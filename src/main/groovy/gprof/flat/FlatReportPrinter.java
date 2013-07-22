@@ -26,12 +26,9 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
     private static String SP = "  ";
 
+    @Override
     public void print(List<FlatReportElement> elements, PrintWriter writer) {
-        print(elements, writer, new DefaultComparator());
-    }
-
-    public void print(List<FlatReportElement> elements, PrintWriter writer, Comparator comparator) {
-        Collections.sort(elements, comparator);
+        Collections.sort(elements, new DefaultComparator());
         List<Map<COLUMN, String>> rows = createRowValueList(elements);
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
         writeHeader(writer, columnSizeMap);

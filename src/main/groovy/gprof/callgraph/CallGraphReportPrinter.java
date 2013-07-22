@@ -97,22 +97,17 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
         }
         
     }
-
+    
     @Override
     public void print(List<CallGraphReportThreadElement> elements, PrintWriter writer) {
-        print(elements, writer, null);
-    }
-
-    @Override
-    public void print(List<CallGraphReportThreadElement> elements, PrintWriter writer, Comparator comparator) {
         if (!elements.isEmpty()) {
             for (CallGraphReportThreadElement te : (List<CallGraphReportThreadElement>) elements) {
-                printElement(te, writer, comparator);
+                printElement(te, writer);
             }
         }
     }
     
-    protected void printElement(CallGraphReportThreadElement te, PrintWriter writer, Comparator comparator) {
+    protected void printElement(CallGraphReportThreadElement te, PrintWriter writer) {
         if (separateThread) {
             printThread(te, writer);     
         }

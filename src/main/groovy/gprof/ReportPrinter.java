@@ -23,6 +23,4 @@ public interface ReportPrinter<E extends ReportElement> {
 
     void print(List<E> elements, PrintWriter writer);
 
-    void print(List<E> elements, PrintWriter writer, Comparator comparator);
-
 }
