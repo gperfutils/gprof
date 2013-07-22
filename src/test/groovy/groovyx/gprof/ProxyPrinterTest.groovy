@@ -25,6 +25,33 @@ class ProxyPrinterTest extends Specification {
         new ProxyReport(tree).prettyPrint(new PrintWriter(out))
         out.toString()
     }
+    
+    def "Prints using the default writer"() {
+        when:
+        def os = new ByteArrayOutputStream()
+        System.out = new PrintStream(os)
+        new ProxyReport(tree( 
+            methodCallNode("A", "a", 1000)
+        )).prettyPrint()
+        def out = os.toString()
+        
+        then:
+        def expected = """\
+Flat:
+
+%       calls  total ms  ms/call   min ms   max ms  method  class
+100.00      1   1000.00  1000.00  1000.00  1000.00  a       A    
+
+Call graph:
+
+index  % time  self  children  calls  name             
+               1.00      0.00    1/1      <spontaneous>
+[1]     100.0  1.00      0.00      1  A.a [1]          
+-------------------------------------------------------
+"""
+        out == expected
+        
+    }
 
     def "Prints mixed report"() {
         when:

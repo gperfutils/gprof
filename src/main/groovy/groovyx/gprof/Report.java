@@ -26,6 +26,10 @@ public abstract class Report {
     public Report(CallTree callTree) {
         this.callTree = callTree;
     }
+    
+    public void prettyPrint() {
+        prettyPrint(new PrintWriter(System.out));    
+    }
 
     public void prettyPrint(PrintWriter writer) {
         prettyPrint(Collections.emptyMap(), writer);
