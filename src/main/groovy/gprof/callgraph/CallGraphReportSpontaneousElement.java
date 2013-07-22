@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof.callgraph;
 
-public class CallGraphReportWholeCycleElement extends CallGraphReportMethodElement {
+import gprof.MethodInfo;
+
+public class CallGraphReportSpontaneousElement extends CallGraphReportMethodElement {
     
     static final MethodInfo NON_METHOD = new MethodInfo("", "");
     
-    public CallGraphReportWholeCycleElement(long index, long cycleIndex) {
-        super(index, NON_METHOD);
-        this.setCycleIndex(cycleIndex);
+    public CallGraphReportSpontaneousElement() {
+        super(0, NON_METHOD);
+        setCalls(1);
     }
+
 }

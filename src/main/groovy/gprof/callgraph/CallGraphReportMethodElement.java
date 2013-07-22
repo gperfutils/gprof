@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof.callgraph;
+
+import gprof.CallTime;
+import gprof.MethodInfo;
 
 import java.util.*;
 

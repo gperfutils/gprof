@@ -1,5 +1,7 @@
-package gprof
+package gprof.callgraph
 
+import gprof.TestHelper
+import gprof.callgraph.CallGraphReport
 import spock.lang.Specification
 
 @Mixin(TestHelper)

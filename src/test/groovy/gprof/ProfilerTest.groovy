@@ -1,5 +1,6 @@
 package gprof
 
+import gprof.flat.FlatReportNormalizer
 import spock.lang.Specification
 
 @Mixin(TestHelper)

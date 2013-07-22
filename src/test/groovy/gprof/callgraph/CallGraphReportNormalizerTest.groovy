@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof
+package gprof.callgraph
 
+import gprof.CallTime
+import gprof.CallTree
+import gprof.TestHelper
+import gprof.callgraph.CallGraphReportMethodElement
+import gprof.callgraph.CallGraphReportNormalizer
+import gprof.callgraph.CallGraphReportThreadElement
 import spock.lang.Specification
 
 @Mixin(TestHelper)

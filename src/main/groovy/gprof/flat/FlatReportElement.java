@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package gprof;
+package gprof.flat;
+
+import gprof.CallTime;
+import gprof.MethodInfo;
+import gprof.ReportElement;
 
 public class FlatReportElement implements ReportElement {
 

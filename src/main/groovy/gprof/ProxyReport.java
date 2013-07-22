@@ -15,10 +15,10 @@
  */
 package gprof;
 
+import gprof.callgraph.CallGraphReport;
+import gprof.flat.FlatReport;
+
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class ProxyReport extends Report {

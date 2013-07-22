@@ -20,9 +20,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-class Utils {
+public class Utils {
 
-    static HashMap hashMap(Object...kvs) {
+    public static HashMap hashMap(Object...kvs) {
         HashMap hashMap = new HashMap();
         for (int i = 0, n = kvs.length; i < n; i += 2) {
             hashMap.put(kvs[i], kvs[i + 1]);
@@ -30,7 +30,7 @@ class Utils {
         return hashMap;
     }
 
-    static String join(Collection coll, String separator) {
+    public static String join(Collection coll, String separator) {
         StringBuilder sb = new StringBuilder();
         for (Iterator it = coll.iterator();;) {
             sb.append(it.next().toString());
