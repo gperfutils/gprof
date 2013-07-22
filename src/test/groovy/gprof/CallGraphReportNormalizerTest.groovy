@@ -29,7 +29,7 @@ class CallGraphReportNormalizerTest extends Specification {
     }
     
     def parent(args) {
-        def parent = new CallGraphReportSubElement.Parent(args.index)
+        def parent = new CallGraphReportMethodElement.Parent(args.index)
         parent.time = time(args.time)
         parent.childrenTime = time(args.childrenTime)
         parent.calls = args.calls
@@ -42,12 +42,12 @@ class CallGraphReportNormalizerTest extends Specification {
     }
     
     def child(args) {
-        def child = new CallGraphReportSubElement.Child(args.index)
+        def child = new CallGraphReportMethodElement.Child(args.index)
         child
     }
     
     def element(args) {
-        def e = new CallGraphReportElement(args.thread);
+        def e = new CallGraphReportThreadElement(args.thread);
         args.subElements.each {
             e.addSubElement(it)
         }
@@ -55,7 +55,7 @@ class CallGraphReportNormalizerTest extends Specification {
     }
 
     def subElement(args) {
-        def ge = new CallGraphReportSubElement(args.index, args.method)
+        def ge = new CallGraphReportMethodElement(args.index, args.method)
         args.children.each { ge.addChild(it) }
         args.parents.each { ge.addParent(it) }
         ge.timePercent = args.timePercent

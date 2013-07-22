@@ -21,11 +21,18 @@ import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.*;
 
-public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElement> {
+public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThreadElement> {
 
     private static Character SEPARATOR_CHAR = '-';
+    private static Character THREAD_SEPARATOR_CHAR = '=';
     private static String COLUMN_SEPARATOR = "  ";
     private static String SPONTANEOUS = "<spontaneous>";
+    
+    private boolean separateThread;
+    
+    public void setSeparateThread(boolean separateThread) {
+        this.separateThread = separateThread;
+    }
     
     private static class Formatter {
         
@@ -88,20 +95,27 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
     }
 
     @Override
-    public void print(List<CallGraphReportElement> elements, PrintWriter writer) {
+    public void print(List<CallGraphReportThreadElement> elements, PrintWriter writer) {
         print(elements, writer, null);
     }
 
     @Override
-    public void print(List<CallGraphReportElement> elements, PrintWriter writer, Comparator comparator) {
-        for (CallGraphReportElement element : elements) {
-            printElement(element.getSubElements(), writer, comparator);
+    public void print(List<CallGraphReportThreadElement> elements, PrintWriter writer, Comparator comparator) {
+        if (!elements.isEmpty()) {
+            for (CallGraphReportThreadElement te : (List<CallGraphReportThreadElement>) elements) {
+                printElement(te, writer, comparator);
+            }
         }
     }
     
-    protected void printElement(Collection<CallGraphReportSubElement> elements, PrintWriter writer, Comparator comparator) {
-        Map<Long, CallGraphReportSubElement> graphTable = new HashMap();
-        for (CallGraphReportSubElement entry : elements) {
+    protected void printElement(CallGraphReportThreadElement te, PrintWriter writer, Comparator comparator) {
+        if (separateThread) {
+            printThread(te, writer);     
+        }
+        
+        Collection<CallGraphReportMethodElement> elements = te.getSubElements();
+        Map<Long, CallGraphReportMethodElement> graphTable = new HashMap();
+        for (CallGraphReportMethodElement entry : elements) {
             graphTable.put(entry.getIndex(), entry);
         }
 
@@ -111,10 +125,10 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             header.put(col, col.toString());
         }
         lines.add(header);
-        for (CallGraphReportSubElement element : elements) {
+        for (CallGraphReportMethodElement element : elements) {
             if (element.getParents().isEmpty()) {
             } else {
-                for (CallGraphReportSubElement.Parent parent : element.getParents().values()) {
+                for (CallGraphReportMethodElement.Parent parent : element.getParents().values()) {
                     if (parent.getIndex() == 0) {
                         lines.add(
                                 Utils.hashMap(
@@ -137,7 +151,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                     } else if (parent.getIndex() == element.getIndex()) {
                         // ignore recursive call
                     } else {
-                        CallGraphReportSubElement parentRef = graphTable.get(parent.getIndex());
+                        CallGraphReportMethodElement parentRef = graphTable.get(parent.getIndex());
                         if (parentRef.getCycleIndex() > 0 && parentRef.getCycleIndex() == element.getCycleIndex()) {
                             lines.add(
                                     Utils.hashMap(
@@ -186,9 +200,9 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             }
             lines.add(primaryLine(element));
 
-            for (CallGraphReportSubElement.Child child : element.getChildren().values()) {
-                CallGraphReportSubElement childRef = graphTable.get(child.getIndex());
-                CallGraphReportSubElement.Parent childParent = childRef.getParents().get(element.getIndex());
+            for (CallGraphReportMethodElement.Child child : element.getChildren().values()) {
+                CallGraphReportMethodElement childRef = graphTable.get(child.getIndex());
+                CallGraphReportMethodElement.Parent childParent = childRef.getParents().get(element.getIndex());
                 if (element instanceof CallGraphReportWholeCycleElement) {
                     lines.add(
                             Utils.hashMap(
@@ -306,7 +320,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
             Arrays.asList(
                 Column.INDEX, Column.TOTAL_TIME_PERCENT,
                 Column.SELF_TIME, Column.CHILDREN_TIME, Column.CALLS, Column.NAME);
-        String separator = createSeparator(rowWidth);
+        String separator = methodSeparator(rowWidth);
 
         for (Object line: lines) {
             if (line instanceof Map) {
@@ -320,10 +334,15 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                 writer.println(separator);
             }
         }
+        
+        if (separateThread) {
+            printThreadSeparator(rowWidth, writer);
+        }
+        
         writer.flush();
     }
 
-    private HashMap primaryLine(CallGraphReportSubElement element) {
+    private Object primaryLine(CallGraphReportMethodElement element) {
         String name;
         if (element instanceof CallGraphReportWholeCycleElement) {
             name = String.format("<cycle %d as a whole> " + Formatter.index(element.getIndex()), element.getCycleIndex());
@@ -349,7 +368,20 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportElem
                 name);
     }
 
-    private String createSeparator(int rowWidth) {
+    protected void printThread(CallGraphReportThreadElement threadElement, PrintWriter writer) {
+        ThreadInfo thread = threadElement.getThread();
+        writer.printf("#%d %s%n%n", thread.getThreadId(), thread.getThreadName());
+    }
+    
+    protected void printThreadSeparator(int width, PrintWriter writer) {
+        StringBuilder buff = new StringBuilder();
+        for (int i = 0; i < width; i++) {
+            buff.append(THREAD_SEPARATOR_CHAR);   
+        }
+        writer.println(buff.toString());    
+    }
+
+    private String methodSeparator(int rowWidth) {
         StringBuilder separatorBuff = new StringBuilder();
         for (int i = 0; i < rowWidth; i++) {
             separatorBuff.append(SEPARATOR_CHAR);

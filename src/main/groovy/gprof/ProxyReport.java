@@ -17,7 +17,9 @@ package gprof;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class ProxyReport extends Report {
     
@@ -29,16 +31,16 @@ public class ProxyReport extends Report {
         flatReport = new FlatReport(callTree);
         callGraphReport = new CallGraphReport(callTree);
     }
-
+    
     @Override
-    public void prettyPrint(PrintWriter writer) {
+    public void prettyPrint(Map args, PrintWriter writer) {
         writer.println("Flat:");
         writer.println();
-        flatReport.prettyPrint(writer);
+        flatReport.prettyPrint(args, writer);
         writer.println();
         writer.println("Call graph:");
         writer.println();
-        callGraphReport.prettyPrint(writer);
+        callGraphReport.prettyPrint(args, writer);
     }
 
 }

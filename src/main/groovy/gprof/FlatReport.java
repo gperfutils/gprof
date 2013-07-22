@@ -16,19 +16,22 @@
 package gprof;
 
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class FlatReport extends Report {
-    
-    private List<FlatReportElement> elements;
 
     public FlatReport(CallTree callTree) {
         super(callTree);
-        elements = new FlatReportNormalizer().normalize(callTree);
     }
     
-    public void prettyPrint(PrintWriter writer) {
-        new FlatReportPrinter().print(elements, writer);
+    @Override
+    public void prettyPrint(Map args, PrintWriter writer) {
+        FlatReportNormalizer normalizer = new FlatReportNormalizer();
+        List<FlatReportElement> elements = normalizer.normalize(callTree);
+        FlatReportPrinter printer = new FlatReportPrinter();
+        printer.print(elements, writer);
     }
 
 }

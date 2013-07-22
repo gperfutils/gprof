@@ -34,16 +34,20 @@ class TestHelper {
         node
     }
 
-    def thread(Thread th = Thread.currentThread()) {
-        new ThreadInfo(th.name, th.id)
+    def thread(name = "main", long id = 1) {
+        new ThreadInfo(name, id)
+    }
+    
+    def threadRun(name = "main", long id = 1) {
+        new ThreadRunInfo(thread(name, id))
+    }
+    
+    def threadRun(ThreadInfo th) {
+        new ThreadRunInfo(th)        
     }
 
-    def threadRun(Thread th = Thread.currentThread()) {
-        new ThreadRunInfo(thread(th))
-    }
-
-    def threadRunNode(Thread th = Thread.currentThread(), Object... children) {
-        node(threadRun(th), children)
+    def threadRunNode(name = "main", long id = 1, Object... children) {
+        node(threadRun(thread(name, id)), children)
     }
 
     def method(className, methodName) {

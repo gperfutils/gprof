@@ -15,7 +15,7 @@
  */
 package gprof;
 
-public class CallGraphReportSpontaneousElement extends CallGraphReportSubElement {
+public class CallGraphReportSpontaneousElement extends CallGraphReportMethodElement {
     
     static final MethodInfo NON_METHOD = new MethodInfo("", "");
     

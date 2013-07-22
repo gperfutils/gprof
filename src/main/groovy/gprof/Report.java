@@ -16,7 +16,9 @@
 package gprof;
 
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public abstract class Report {
 
@@ -26,6 +28,10 @@ public abstract class Report {
         this.callTree = callTree;
     }
 
-    public abstract void prettyPrint(PrintWriter writer);
+    public void prettyPrint(PrintWriter writer) {
+        prettyPrint(Collections.emptyMap(), writer);
+    }
+    
+    public abstract void prettyPrint(Map args, PrintWriter writer);
 
 }

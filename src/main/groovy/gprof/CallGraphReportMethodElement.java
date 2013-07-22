@@ -17,7 +17,7 @@ package gprof;
 
 import java.util.*;
 
-public class CallGraphReportSubElement implements ReportElement {
+public class CallGraphReportMethodElement implements CallGraphReportElement {
     
     public static class Parent {
         
@@ -179,7 +179,7 @@ public class CallGraphReportSubElement implements ReportElement {
     private SortedMap<Long, Parent> parents = new TreeMap();
     private SortedMap<Long, Child> children = new TreeMap();
 
-    public CallGraphReportSubElement(long index, MethodInfo method) {
+    public CallGraphReportMethodElement(long index, MethodInfo method) {
         this.index = index;
         this.method = method;
     }
@@ -277,7 +277,7 @@ public class CallGraphReportSubElement implements ReportElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        CallGraphReportSubElement that = (CallGraphReportSubElement) o;
+        CallGraphReportMethodElement that = (CallGraphReportMethodElement) o;
 
         if (calls != that.calls) return false;
         if (index != that.index) return false;
@@ -310,7 +310,7 @@ public class CallGraphReportSubElement implements ReportElement {
 
     @Override
     public String toString() {
-        return "CallGraphReportSubElement{" +
+        return "CallGraphReportMethodElement{" +
                 "index=" + index +
                 ", method=" + method +
                 ", timePercent=" + timePercent +

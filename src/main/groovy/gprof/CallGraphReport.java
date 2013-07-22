@@ -16,19 +16,29 @@
 package gprof;
 
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class CallGraphReport extends Report {
-    
-    private List<CallGraphReportElement> elements;
 
     public CallGraphReport(CallTree callTree) {
         super(callTree);
-        elements = new CallGraphReportNormalizer().normalize(callTree);
     }
 
-    public void prettyPrint(PrintWriter writer) {
-        new CallGraphReportPrinter().print(elements, writer); 
+    @Override
+    public void prettyPrint(Map args, PrintWriter writer) {
+        boolean separateThread = 
+                args.get("separateThread") instanceof Boolean ?
+                        (Boolean) args.get("separateThread") : false;
+        
+        CallGraphReportNormalizer normalizer = new CallGraphReportNormalizer();
+        normalizer.setSeparateThread(separateThread);
+        List<CallGraphReportThreadElement> elements = normalizer.normalize(callTree);
+        
+        CallGraphReportPrinter printer = new CallGraphReportPrinter();
+        printer.setSeparateThread(separateThread);
+        printer.print(elements, writer); 
     }
 
 }
