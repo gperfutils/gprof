@@ -62,11 +62,11 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
             for (CallGraphReportMethodElement subElement : te.getSubElements()) {
                 if (!(subElement instanceof CallGraphReportWholeCycleElement ||
                       subElement instanceof CallGraphReportSpontaneousElement)) {
-                    totalTime += subElement.getSelfTime().nanoseconds();
+                    totalTime += subElement.getSelfTime();
                 }
             }
             for (CallGraphReportMethodElement subElement : te.getSubElements()) {
-                subElement.setTimePercent(((float) subElement.getTime().nanoseconds()) / totalTime * 100f);
+                subElement.setTimePercent(((float) subElement.getTime() / totalTime) * 100f);
             }
         }
     }
@@ -81,7 +81,7 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
         Comparator comparator = new Comparator<CallGraphReportMethodElement>() {
             @Override
             public int compare(CallGraphReportMethodElement e1, CallGraphReportMethodElement e2) {
-                return -(e1.getTime().compareTo(e2.getTime()));
+                return -Long.compare(e1.getTime(), e2.getTime());
             }
         };
         Object first = elements.get(0);
@@ -214,8 +214,8 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                 }
 
                 if (!recursive) {
-                    subElement.setTime(subElement.getTime().plus(call.getTime()));
-                    parent.setTime(parent.getTime().plus(call.getTime()));
+                    subElement.setTime(subElement.getTime() + call.getTime());
+                    parent.setTime(parent.getTime() + call.getTime());
                 }
 
                 for (CallTree.Node child : node.getChildren()) {
@@ -236,8 +236,8 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                             if (!subElement.getChildren().containsKey(childIndex)) {
                                 subElement.addChild(new CallGraphReportMethodElement.Child(childIndex));
                             }
-                            subElement.setChildrenTime(subElement.getChildrenTime().plus(childMethodCall.getTime()));
-                            parent.setChildrenTime(parent.getChildrenTime().plus(childMethodCall.getTime()));
+                            subElement.setChildrenTime(subElement.getChildrenTime() + childMethodCall.getTime());
+                            parent.setChildrenTime(parent.getChildrenTime() + childMethodCall.getTime());
                         }
                     }
                 }
@@ -269,11 +269,11 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                                 CallGraphReportMethodElement childElement = element.getSubElement(childIndex); 
                                 if (childElement.getCycleIndex() == subElement.getCycleIndex()) {
                                     if (parentElement != null && parentElement.getCycleIndex() == subElement.getCycleIndex()) {
-                                        parent.setTime(parent.getTime().minus(childMethodCall.getTime()));
-                                        parent.setChildrenTime(parent.getChildrenTime().minus(childMethodCall.getTime()));
+                                        parent.setTime(parent.getTime() - childMethodCall.getTime());
+                                        parent.setChildrenTime(parent.getChildrenTime() - childMethodCall.getTime());
                                     }
-                                    subElement.setTime(subElement.getTime().minus(childMethodCall.getTime()));
-                                    subElement.setChildrenTime(subElement.getChildrenTime().minus(childMethodCall.getTime()));
+                                    subElement.setTime(subElement.getTime() - childMethodCall.getTime());
+                                    subElement.setChildrenTime(subElement.getChildrenTime() - childMethodCall.getTime());
                                 }
                             }
                         }
@@ -300,17 +300,17 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
                             }
                             CallGraphReportMethodElement.Parent cycleParent = 
                                     cycleEntryElement.getParents().get(cycleParentIndex);
-                            CallTime childrenTime = new CallTime(0);
+                            long childrenTime = 0L;
                             for (CallTree.Node childNode : node.getChildren()) {
                                 MethodCallInfo childCall = (MethodCallInfo) childNode.getData();
                                 // if the child call is recursion, doesn't count the time of the child call
                                 // as the children time but the self time of the method call.
                                 if (!childCall.getMethod().equals(methodCall.getMethod())) {
-                                    childrenTime = childrenTime.plus(childCall.getTime());
+                                    childrenTime += childCall.getTime();
                                 }
                             }
-                            CallTime selfTime = methodCall.getTime().minus(childrenTime);
-                            cycleParent.setChildrenTime(cycleParent.getChildrenTime().minus(selfTime));
+                            long selfTime = methodCall.getTime() - childrenTime;
+                            cycleParent.setChildrenTime(cycleParent.getChildrenTime() - selfTime);
                         }
                         
                     }

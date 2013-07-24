@@ -107,11 +107,11 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
         for (FlatReportElement element : elements) {
             Map<COLUMN, String> row = new HashMap();
             row.put(COLUMN.TIME_PERCENT, String.format("%.2f", element.getTimePercent()));
-            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime().milliseconds()));
+            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime() * 0.000001));
             row.put(CALLS, String.format("%d", element.getCalls()));
-            row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime().milliseconds()));
-            row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime().milliseconds()));
-            row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall().milliseconds()));
+            row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime() * 0.000001));
+            row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime() * 0.000001));
+            row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall() * 0.000001));
             row.put(COLUMN.METHOD_NAME, element.getMethod().getMethodName());
             row.put(COLUMN.CLASS_NAME, element.getMethod().getClassName());
             rows.add(row);
@@ -143,7 +143,7 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
         @Override
         public int compare(FlatReportElement o1, FlatReportElement o2) {
-            int r = -(o1.getTime().compareTo(o2.getTime()));
+            int r = -Long.compare(o1.getTime(), o2.getTime());
             if (r == 0) {
                 r = -(((Long) o1.getCalls()).compareTo(o2.getCalls()));
                 if (r == 0) {

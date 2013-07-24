@@ -15,7 +15,6 @@
  */
 package groovyx.gprof.callgraph;
 
-import groovyx.gprof.CallTime;
 import groovyx.gprof.MethodInfo;
 
 import java.util.*;
@@ -25,33 +24,30 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
     public static class Parent {
         
         private long index;
-        private CallTime time = new CallTime(0);
-        private CallTime childrenTime = new CallTime(0);
-        private long calls;
-        private long recursiveCalls;
-        private long cycleCalls;
+        private long time, childrenTime;
+        private long calls, recursiveCalls, cycleCalls;
         
         public Parent(long index) {
             this.index = index;
         }
 
-        public CallTime getTime() {
+        public long getTime() {
             return time;
         }
 
-        public void setTime(CallTime time) {
+        public void setTime(long time) {
             this.time = time;
         }
 
-        public CallTime getSelfTime() {
-            return time.minus(childrenTime);
+        public long getSelfTime() {
+            return time - childrenTime;
         }
 
-        public CallTime getChildrenTime() {
+        public long getChildrenTime() {
             return childrenTime;
         }
 
-        public void setChildrenTime(CallTime childrenTime) {
+        public void setChildrenTime(long childrenTime) {
             this.childrenTime = childrenTime;
         }
 
@@ -95,12 +91,11 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
             Parent parent = (Parent) o;
 
             if (calls != parent.calls) return false;
+            if (childrenTime != parent.childrenTime) return false;
+            if (cycleCalls != parent.cycleCalls) return false;
             if (index != parent.index) return false;
             if (recursiveCalls != parent.recursiveCalls) return false;
-            if (cycleCalls != parent.cycleCalls) return false;
-            if (childrenTime != null ? !childrenTime.equals(parent.childrenTime) : parent.childrenTime != null)
-                return false;
-            if (time != null ? !time.equals(parent.time) : parent.time != null) return false;
+            if (time != parent.time) return false;
 
             return true;
         }
@@ -108,8 +103,8 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
         @Override
         public int hashCode() {
             int result = (int) (index ^ (index >>> 32));
-            result = 31 * result + (time != null ? time.hashCode() : 0);
-            result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
+            result = 31 * result + (int) (time ^ (time >>> 32));
+            result = 31 * result + (int) (childrenTime ^ (childrenTime >>> 32));
             result = 31 * result + (int) (calls ^ (calls >>> 32));
             result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
             result = 31 * result + (int) (cycleCalls ^ (cycleCalls >>> 32));
@@ -170,15 +165,11 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
         }
     }
     
-    private long index;
-    private long cycleIndex;
+    private long index, cycleIndex;
     private MethodInfo method;
     private float timePercent;
-    private CallTime time = new CallTime(0);
-    private CallTime childrenTime = new CallTime(0);
-    private long calls = 0;
-    private long recursiveCalls = 0;
-    private long cycleCalls = 0;
+    private long time, childrenTime;
+    private long calls, recursiveCalls, cycleCalls;
     private SortedMap<Long, Parent> parents = new TreeMap();
     private SortedMap<Long, Child> children = new TreeMap();
 
@@ -239,23 +230,23 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
         return children;
     }
 
-    public CallTime getTime() {
+    public long getTime() {
         return time;
     }
 
-    public void setTime(CallTime time) {
+    public void setTime(long time) {
         this.time = time;
     }
 
-    public CallTime getSelfTime() {
-        return time.minus(childrenTime);
+    public long getSelfTime() {
+        return time - childrenTime;
     }
 
-    public CallTime getChildrenTime() {
+    public long getChildrenTime() {
         return childrenTime;
     }
 
-    public void setChildrenTime(CallTime childrenTime) {
+    public void setChildrenTime(long childrenTime) {
         this.childrenTime = childrenTime;
     }
 
@@ -283,15 +274,16 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
         CallGraphReportMethodElement that = (CallGraphReportMethodElement) o;
 
         if (calls != that.calls) return false;
+        if (childrenTime != that.childrenTime) return false;
+        if (cycleCalls != that.cycleCalls) return false;
+        if (cycleIndex != that.cycleIndex) return false;
         if (index != that.index) return false;
         if (recursiveCalls != that.recursiveCalls) return false;
-        if (cycleCalls != that.cycleCalls) return false;
+        if (time != that.time) return false;
         if (Float.compare(that.timePercent, timePercent) != 0) return false;
         if (children != null ? !children.equals(that.children) : that.children != null) return false;
-        if (childrenTime != null ? !childrenTime.equals(that.childrenTime) : that.childrenTime != null) return false;
         if (method != null ? !method.equals(that.method) : that.method != null) return false;
         if (parents != null ? !parents.equals(that.parents) : that.parents != null) return false;
-        if (time != null ? !time.equals(that.time) : that.time != null) return false;
 
         return true;
     }
@@ -299,10 +291,11 @@ public class CallGraphReportMethodElement implements CallGraphReportElement {
     @Override
     public int hashCode() {
         int result = (int) (index ^ (index >>> 32));
+        result = 31 * result + (int) (cycleIndex ^ (cycleIndex >>> 32));
         result = 31 * result + (method != null ? method.hashCode() : 0);
         result = 31 * result + (timePercent != +0.0f ? Float.floatToIntBits(timePercent) : 0);
-        result = 31 * result + (time != null ? time.hashCode() : 0);
-        result = 31 * result + (childrenTime != null ? childrenTime.hashCode() : 0);
+        result = 31 * result + (int) (time ^ (time >>> 32));
+        result = 31 * result + (int) (childrenTime ^ (childrenTime >>> 32));
         result = 31 * result + (int) (calls ^ (calls >>> 32));
         result = 31 * result + (int) (recursiveCalls ^ (recursiveCalls >>> 32));
         result = 31 * result + (int) (cycleCalls ^ (cycleCalls >>> 32));

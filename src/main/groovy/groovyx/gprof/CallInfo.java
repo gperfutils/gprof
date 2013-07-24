@@ -17,26 +17,26 @@ package groovyx.gprof;
 
 public abstract class CallInfo {
 
-    private CallTime time = new CallTime(0);
-    private CallTime childrenTime = new CallTime(0);
+    private long time;
+    private long childrenTime;
 
-    public void setTime(CallTime time) {
+    public void setTime(long time) {
         this.time = time;
     }
 
-    public CallTime getTime() {
+    public long getTime() {
         return time;
     }
     
-    public CallTime getSelfTime() {
-        return getTime().minus(getChildrenTime());
+    public long getSelfTime() {
+        return time - childrenTime;
     }
 
-    public CallTime getChildrenTime() {
+    public long getChildrenTime() {
         return childrenTime;
     }
 
-    public void setChildrenTime(CallTime childrenTime) {
+    public void setChildrenTime(long childrenTime) {
         this.childrenTime = childrenTime;
     }
 }

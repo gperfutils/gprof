@@ -15,7 +15,7 @@
  */
 package groovyx.gprof.callgraph
 
-import groovyx.gprof.CallTime
+
 import groovyx.gprof.CallTree
 import groovyx.gprof.TestHelper
 import spock.lang.Specification
@@ -25,10 +25,6 @@ class CallGraphReportNormalizerTest extends Specification {
 
     def norm(CallTree tree) {
         new CallGraphReportNormalizer().normalize(tree)
-    }
-    
-    def time(long ms) {
-        new CallTime(ms * 1000000)
     }
     
     def parent(args) {

@@ -26,7 +26,7 @@ public class FlatReportNormalizer implements ReportNormalizer {
 
     public List<FlatReportElement> normalize(CallTree callTree) {
         final List<FlatReportElement> elements = new ArrayList();
-        final CallTime[] time = { new CallTime(0) };
+        final long[] time = { 0L };
 
         callTree.visit(new CallTree.NodeVisitor() {
 
@@ -44,25 +44,17 @@ public class FlatReportNormalizer implements ReportNormalizer {
                         elements.add(element);
                     }
                     element.setCalls(element.getCalls() + 1);
-                    CallTime theTime = methodCall.getSelfTime();
-                    if (element.getTime() == null) {
-                        element.setTime(theTime);
-                    } else {
-                        element.setTime(element.getTime().plus(theTime));
-                    }
-                    if (element.getMinTime() == null || element.getMinTime().compareTo(theTime) > 0) {
-                        element.setMinTime(theTime);
-                    }
-                    if (element.getMaxTime() == null || element.getMaxTime().compareTo(theTime) < 0) {
-                        element.setMaxTime(theTime);
-                    }
-                    time[0] = time[0].plus(theTime);
+                    long theTime = methodCall.getSelfTime();
+                    element.setTime(element.getTime() + theTime);
+                    element.setMinTime(element.getMinTime() > 0 ? Math.min(element.getMinTime(), theTime) : theTime);
+                    element.setMaxTime(Math.max(element.getMaxTime(), theTime));
+                    time[0] += theTime;
                 }
             }
         });
         for (FlatReportElement e : elements) {
-            e.setTimePercent(e.getTime().milliseconds() / time[0].milliseconds() * 100);
-            e.setTimePerCall(e.getTime().div(e.getCalls()));
+            e.setTimePercent(e.getTime() / time[0] * 100);
+            e.setTimePerCall(e.getTime() / e.getCalls());
         }
         return elements;
     }

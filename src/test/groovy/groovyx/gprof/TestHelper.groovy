@@ -16,8 +16,12 @@
 package groovyx.gprof
 
 class TestHelper {
+    
+    def time(long ms) {
+        ms * 1000000
+    }
 
-     CallTree tree(Object... nodes) {
+    CallTree tree(Object... nodes) {
         def tree = new CallTree(Thread.currentThread());
         nodes.each { node ->
             tree.root.addChild(node)
@@ -56,7 +60,7 @@ class TestHelper {
 
     def methodCall(className, methodName, long ms) {
         def call = new MethodCallInfo(method(className, methodName))
-        call.time = new CallTime(ms * 1000000)
+        call.time = time(ms)
         call
     }
 

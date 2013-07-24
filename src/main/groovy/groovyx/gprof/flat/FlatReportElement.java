@@ -15,7 +15,6 @@
  */
 package groovyx.gprof.flat;
 
-import groovyx.gprof.CallTime;
 import groovyx.gprof.MethodInfo;
 import groovyx.gprof.ReportElement;
 
@@ -25,10 +24,10 @@ public class FlatReportElement implements ReportElement {
     private String name;
     private long calls;
     private double timePercent;
-    private CallTime time;
-    private CallTime minTime;
-    private CallTime maxTime;
-    private CallTime timePerCall;
+    private long time;
+    private long minTime;
+    private long maxTime;
+    private long timePerCall;
 
     public FlatReportElement(MethodInfo method) {
         this.method = method;
@@ -46,35 +45,35 @@ public class FlatReportElement implements ReportElement {
         this.calls = calls;
     }
 
-    public CallTime getTimePerCall() {
+    public long getTimePerCall() {
         return timePerCall;
     }
 
-    public CallTime getTime() {
+    public long getTime() {
         return time;
     }
 
-    public void setTime(CallTime time) {
+    public void setTime(long time) {
         this.time = time;
     }
 
-    public CallTime getMinTime() {
+    public long getMinTime() {
         return minTime;
     }
 
-    public void setMinTime(CallTime minTime) {
+    public void setMinTime(long minTime) {
         this.minTime = minTime;
     }
 
-    public CallTime getMaxTime() {
+    public long getMaxTime() {
         return maxTime;
     }
 
-    public void setMaxTime(CallTime maxTime) {
+    public void setMaxTime(long maxTime) {
         this.maxTime = maxTime;
     }
 
-    public void setTimePerCall(CallTime timePerCall) {
+    public void setTimePerCall(long timePerCall) {
         this.timePerCall = timePerCall;
     }
 
@@ -94,13 +93,13 @@ public class FlatReportElement implements ReportElement {
         FlatReportElement that = (FlatReportElement) o;
 
         if (calls != that.calls) return false;
+        if (maxTime != that.maxTime) return false;
+        if (minTime != that.minTime) return false;
+        if (time != that.time) return false;
+        if (timePerCall != that.timePerCall) return false;
         if (Double.compare(that.timePercent, timePercent) != 0) return false;
-        if (maxTime != null ? !maxTime.equals(that.maxTime) : that.maxTime != null) return false;
         if (method != null ? !method.equals(that.method) : that.method != null) return false;
-        if (minTime != null ? !minTime.equals(that.minTime) : that.minTime != null) return false;
         if (name != null ? !name.equals(that.name) : that.name != null) return false;
-        if (time != null ? !time.equals(that.time) : that.time != null) return false;
-        if (timePerCall != null ? !timePerCall.equals(that.timePerCall) : that.timePerCall != null) return false;
 
         return true;
     }
@@ -114,10 +113,10 @@ public class FlatReportElement implements ReportElement {
         result = 31 * result + (int) (calls ^ (calls >>> 32));
         temp = Double.doubleToLongBits(timePercent);
         result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + (time != null ? time.hashCode() : 0);
-        result = 31 * result + (minTime != null ? minTime.hashCode() : 0);
-        result = 31 * result + (maxTime != null ? maxTime.hashCode() : 0);
-        result = 31 * result + (timePerCall != null ? timePerCall.hashCode() : 0);
+        result = 31 * result + (int) (time ^ (time >>> 32));
+        result = 31 * result + (int) (minTime ^ (minTime >>> 32));
+        result = 31 * result + (int) (maxTime ^ (maxTime >>> 32));
+        result = 31 * result + (int) (timePerCall ^ (timePerCall >>> 32));
         return result;
     }
 

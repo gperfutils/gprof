@@ -133,7 +133,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
             long time = System.nanoTime() - timeStack.pop();
             CallTree.Node node = nodeStack.pop();
-            node.getData().setTime(new CallTime(time));
+            node.getData().setTime(time);
             return result;
         }
 
@@ -158,7 +158,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
                     CallTree.Node parentNode = node.getParent();
                     if (node != tree.getRoot()) {
                         CallInfo parentCall = parentNode.getData();
-                        parentCall.setChildrenTime(parentCall.getChildrenTime().plus(call.getTime()));
+                        parentCall.setChildrenTime(parentCall.getChildrenTime() + call.getTime());
                     }
                 }
             });
