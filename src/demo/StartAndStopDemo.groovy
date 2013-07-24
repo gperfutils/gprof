@@ -30,4 +30,4 @@ profiler.start()
 doSomething()
 profiler.stop()
 
-profiler.result.prettyPrint()
+profiler.report.prettyPrint()

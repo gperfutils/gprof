@@ -53,7 +53,7 @@ public class FlatReportNormalizer implements ReportNormalizer {
             }
         });
         for (FlatReportElement e : elements) {
-            e.setTimePercent(e.getTime() / time[0] * 100);
+            e.setTimePercent((float) e.getTime() / time[0] * 100);
             e.setTimePerCall(e.getTime() / e.getCalls());
         }
         return elements;
