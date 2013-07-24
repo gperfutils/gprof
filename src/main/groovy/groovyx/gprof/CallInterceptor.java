@@ -158,7 +158,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
                     CallTree.Node parentNode = node.getParent();
                     if (node != tree.getRoot()) {
                         CallInfo parentCall = parentNode.getData();
-                        parentCall.setTime(parentCall.getTime().minus(call.getTime()));
+                        parentCall.setChildrenTime(parentCall.getChildrenTime().plus(call.getTime()));
                     }
                 }
             });

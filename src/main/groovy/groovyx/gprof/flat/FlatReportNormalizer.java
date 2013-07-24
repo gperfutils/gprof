@@ -44,7 +44,7 @@ public class FlatReportNormalizer implements ReportNormalizer {
                         elements.add(element);
                     }
                     element.setCalls(element.getCalls() + 1);
-                    CallTime theTime = methodCall.getTime();
+                    CallTime theTime = methodCall.getSelfTime();
                     if (element.getTime() == null) {
                         element.setTime(theTime);
                     } else {
@@ -60,9 +60,9 @@ public class FlatReportNormalizer implements ReportNormalizer {
                 }
             }
         });
-        for (FlatReportElement entry : elements) {
-            entry.setTimePercent(entry.getTime().milliseconds() / time[0].milliseconds() * 100);
-            entry.setTimePerCall(entry.getTime().div(entry.getCalls()));
+        for (FlatReportElement e : elements) {
+            e.setTimePercent(e.getTime().milliseconds() / time[0].milliseconds() * 100);
+            e.setTimePerCall(e.getTime().div(e.getCalls()));
         }
         return elements;
     }

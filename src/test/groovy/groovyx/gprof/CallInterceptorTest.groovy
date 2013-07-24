@@ -90,33 +90,4 @@ class CallInterceptorTest {
 
     }
 
-    @Test void "parent calls does not contain their child calls"() {
-        def depth0 = { Thread.sleep 100 }
-        def depth1 = { Thread.sleep 200 }
-        def depth2 = { Thread.sleep 300 }
-
-        def interceptor = new CallInterceptor(new MethodCallFilter(), new ThreadRunFilter());
-        interceptor.beforeInvoke(depth0, "call", null)
-        depth0()
-        interceptor.beforeInvoke(depth1, "call", null)
-        depth1()
-        interceptor.beforeInvoke(depth2, "call", null)
-        depth2()
-        interceptor.afterInvoke(depth2, "call", null, null)
-        interceptor.afterInvoke(depth1, "call", null, null)
-        interceptor.afterInvoke(depth0, "call", null, null)
-
-        interceptor.tree.visit(new CallTree.NodeVisitor() {
-            def lastCall = null
-            void visit(CallTree.Node node) {
-                if (lastCall != null) {
-                    assert node.parent.data == lastCall
-                    assert node.data.time > lastCall.time
-                }
-                if (node.data instanceof MethodCallInfo) {
-                    lastCall = node.data
-                }
-            }
-        })
-    }
 }
