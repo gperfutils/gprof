@@ -35,6 +35,10 @@ public abstract class Report {
         prettyPrint(Collections.emptyMap(), writer);
     }
     
+    public void prettyPrint(Map args) {
+        prettyPrint(args, new PrintWriter(System.out));    
+    }
+    
     public abstract void prettyPrint(Map args, PrintWriter writer);
 
 }
