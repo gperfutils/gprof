@@ -28,7 +28,6 @@ import java.util.*;
 public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThreadElement> {
 
     private static Character SEPARATOR_CHAR = '-';
-    private static Character THREAD_SEPARATOR_CHAR = '=';
     private static String COLUMN_SEPARATOR = "  ";
     private static String SPONTANEOUS = "<spontaneous>";
     
@@ -373,11 +372,7 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
     }
     
     protected void printThreadSeparator(int width, PrintWriter writer) {
-        StringBuilder buff = new StringBuilder();
-        for (int i = 0; i < width; i++) {
-            buff.append(THREAD_SEPARATOR_CHAR);   
-        }
-        writer.println(buff.toString());    
+        writer.println();    
     }
 
     private String methodSeparator(int rowWidth) {
