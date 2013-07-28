@@ -3,6 +3,7 @@ package groovyx.gprof;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CallInterceptor implements groovy.lang.Interceptor {
 
@@ -83,7 +84,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         private CallTree tmpTree;
         private Stack<CallTree.Node> nodeStack;
         private Stack<Long> timeStack;
-        private boolean ignoring;
+        private AtomicBoolean running;
         private MethodCallFilter methodFilter;
         private ThreadRunFilter threadFilter;
 
@@ -103,6 +104,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
+            running = new AtomicBoolean();
             this.methodFilter = methodFilter;
             this.threadFilter = threadFilter;
         }
@@ -119,6 +121,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
 
         @Override
         public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
+            running.set(true);
             CallTree.Node node = new CallTree.Node(new MethodCallInfo(classNameOf(object), methodName));
             CallTree.Node parentNode = nodeStack.peek();
             node.setParent(parentNode);
@@ -134,6 +137,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             long time = System.nanoTime() - timeStack.pop();
             CallTree.Node node = nodeStack.pop();
             node.getData().setTime(time);
+            running.set(nodeStack.empty());
             return result;
         }
 
@@ -150,6 +154,9 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         }
 
         CallTree makeTree() {
+            // wait until the running intercepted method calls are finished.
+            while (running.get());
+            
             final CallTree tree = tmpTree;
             tree.visit(new CallTree.NodeVisitor() {
                 @Override
