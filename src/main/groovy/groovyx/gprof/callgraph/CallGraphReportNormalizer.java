@@ -29,6 +29,9 @@ public class CallGraphReportNormalizer implements ReportNormalizer {
     }
     
     private void sortAndReindexMethodElements(List<CallGraphReportMethodElement> methodElements, Comparator comparator) {
+        if (methodElements.isEmpty()) {
+            return;
+        }
         long fi = methodElements.get(0).getIndex();
         Collections.sort(methodElements, comparator);
         Map<Long, Long> indexMapper = new HashMap();
