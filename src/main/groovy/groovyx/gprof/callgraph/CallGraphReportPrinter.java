@@ -107,6 +107,9 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
     }
     
     protected void printElement(CallGraphReportThreadElement te, PrintWriter writer) {
+        if (te.getSubElements().isEmpty()) {
+            return;    
+        }
         if (separateThread) {
             printThread(te, writer);     
         }

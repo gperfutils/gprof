@@ -263,4 +263,16 @@ index  % time  self  children  calls  name
         out == expected
     }
 
+    def "Only prints threads have method calls"() {
+        when:
+        def out = report(
+            separateThread: true,
+            tree(
+                threadRunNode("Ta", 2,
+                ),
+            ))
+
+        then:
+        out == ''
+    }
 }
