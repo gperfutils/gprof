@@ -32,8 +32,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     static {
         defaultOptions = new HashMap();
         defaultOptions.put("includeMethods", Collections.emptyList());
-        // I believe grabbing phase must be excluded. Is there anyone wants to profile it?
-        defaultOptions.put("excludeMethods", Arrays.asList("groovyx.gprof.*", "groovy.grape.*"));
+        defaultOptions.put("excludeMethods", Arrays.asList("groovyx.gprof.*"));
         defaultOptions.put("includeThreads", Collections.emptyList());
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
