@@ -3,12 +3,10 @@ package groovyx.gprof;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CallInterceptor implements groovy.lang.Interceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
-    private CallTree tree;
     private MethodCallFilter methodFilter;
     private ThreadRunFilter threadFilter;
 
@@ -20,14 +18,16 @@ public class CallInterceptor implements groovy.lang.Interceptor {
 
     private LocalInterceptor getLocalInterceptor() {
         Thread thread = Thread.currentThread();
-        if (!threadFilter.accept(thread)) {
-            return LocalInterceptor.DO_NOT_INTERCEPT;
+        LocalInterceptor theInterceptor = interceptors.get(thread);
+        if (theInterceptor != null) {
+            return theInterceptor;
         }
-        LocalInterceptor theInterceptor = interceptors.get(Thread.currentThread());
-        if (theInterceptor == null) {
-            theInterceptor = new LocalInterceptor(methodFilter, threadFilter);
-            interceptors.put(Thread.currentThread(), theInterceptor);
+        if (threadFilter.accept(thread)) {
+            theInterceptor = new LocalInterceptor(methodFilter);
+        } else {
+            theInterceptor = LocalInterceptor.DO_NOT_INTERCEPT;
         }
+        interceptors.put(Thread.currentThread(), theInterceptor);
         return theInterceptor;
     }
 
@@ -51,18 +51,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
     }
 
     CallTree makeTree() {
-        // Wait for all the child threads to die.
-        Thread profThread = Thread.currentThread();
-        for (Thread thread : interceptors.keySet()) {
-            if (!thread.equals(profThread)) {
-                try {
-                    thread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        CallTree tree = new CallTree(profThread);
+        CallTree tree = new CallTree(Thread.currentThread());
         ThreadRunInfo mainThreadRun = (ThreadRunInfo) tree.getRoot().getData();
         for (LocalInterceptor interceptor : interceptors.values()) {
             CallTree theTree = interceptor.getTree();
@@ -84,11 +73,10 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         private CallTree tmpTree;
         private Stack<CallTree.Node> nodeStack;
         private Stack<Long> timeStack;
-        private AtomicBoolean running;
+        private boolean ignoring;
         private MethodCallFilter methodFilter;
-        private ThreadRunFilter threadFilter;
 
-        private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null, null) {
+        private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null) {
             @Override
             public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
                 return null;
@@ -99,14 +87,12 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             }
         };
 
-        public LocalInterceptor(MethodCallFilter methodFilter, ThreadRunFilter threadFilter) {
+        public LocalInterceptor(MethodCallFilter methodFilter) {
             tmpTree = new CallTree(Thread.currentThread());
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             timeStack = new Stack();
-            running = new AtomicBoolean();
             this.methodFilter = methodFilter;
-            this.threadFilter = threadFilter;
         }
 
         private String classNameOf(Object object) {
@@ -121,7 +107,6 @@ public class CallInterceptor implements groovy.lang.Interceptor {
 
         @Override
         public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-            running.set(true);
             CallTree.Node node = new CallTree.Node(new MethodCallInfo(classNameOf(object), methodName));
             CallTree.Node parentNode = nodeStack.peek();
             node.setParent(parentNode);
@@ -137,7 +122,6 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             long time = System.nanoTime() - timeStack.pop();
             CallTree.Node node = nodeStack.pop();
             node.getData().setTime(time);
-            running.set(nodeStack.empty());
             return result;
         }
 
@@ -154,9 +138,6 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         }
 
         CallTree makeTree() {
-            // wait until the running intercepted method calls are finished.
-            while (running.get());
-            
             final CallTree tree = tmpTree;
             tree.visit(new CallTree.NodeVisitor() {
                 @Override
