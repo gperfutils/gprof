@@ -19,15 +19,14 @@ public class CallInterceptor implements groovy.lang.Interceptor {
     private LocalInterceptor getLocalInterceptor() {
         Thread thread = Thread.currentThread();
         LocalInterceptor theInterceptor = interceptors.get(thread);
-        if (theInterceptor != null) {
-            return theInterceptor;
+        if (theInterceptor == null) {
+            if (threadFilter.accept(thread)) {
+                theInterceptor = new LocalInterceptor(methodFilter);
+            } else {
+                theInterceptor = LocalInterceptor.DO_NOT_INTERCEPT;
+            }
+            interceptors.put(Thread.currentThread(), theInterceptor);
         }
-        if (threadFilter.accept(thread)) {
-            theInterceptor = new LocalInterceptor(methodFilter);
-        } else {
-            theInterceptor = LocalInterceptor.DO_NOT_INTERCEPT;
-        }
-        interceptors.put(Thread.currentThread(), theInterceptor);
         return theInterceptor;
     }
 
@@ -73,7 +72,6 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         private CallTree tmpTree;
         private Stack<CallTree.Node> nodeStack;
         private Stack<Long> timeStack;
-        private boolean ignoring;
         private MethodCallFilter methodFilter;
 
         private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null) {
