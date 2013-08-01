@@ -9,6 +9,21 @@ class ProfilerTest extends Specification {
     def flatten(CallTree callTree) {
         return new FlatReportNormalizer().normalize(callTree)
     }
+    
+    def "Reports time is zero when profiling is stopped before the method call has not been finished"() {
+        when:
+        def p = new Profiler()
+        p.start()
+        Thread.start {
+            Thread.sleep(300)
+        }
+        p.stop()
+
+        then:
+        flatten(p.report.callTree)
+            .find { e -> e.method == method("java.lang.Thread", "sleep") }
+            .time == 0
+    }
 
     def "Start and stop profiling"() {
         def p = new Profiler()

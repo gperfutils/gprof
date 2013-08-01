@@ -17,9 +17,9 @@
 
 profile {
     Thread.start("thread-1") {
-        new ArrayList()    
-    }
-    Thread.start("thread-2") {
-        new LinkedList()     
-    }
+        Thread.sleep(100)
+        Thread.start("thread-2") {
+            Thread.sleep(100)
+        }.join()
+    }.join()
 }.prettyPrint(separateThread: true)
