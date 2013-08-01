@@ -39,4 +39,32 @@ public abstract class CallInfo {
     public void setChildrenTime(long childrenTime) {
         this.childrenTime = childrenTime;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CallInfo callInfo = (CallInfo) o;
+
+        if (childrenTime != callInfo.childrenTime) return false;
+        if (time != callInfo.time) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (time ^ (time >>> 32));
+        result = 31 * result + (int) (childrenTime ^ (childrenTime >>> 32));
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "CallInfo{" +
+                "time=" + time +
+                ", childrenTime=" + childrenTime +
+                '}';
+    }
 }
