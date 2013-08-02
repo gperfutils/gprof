@@ -14,7 +14,7 @@
 
   <!-- default groovy -->
   <property name="groovy.version.major" value="2.1" />
-  <property name="groovy.version.minor" value="3" />
+  <property name="groovy.version.minor" value="6" />
 
   <!-- preprocessor (see: http://prebop.sourceforge.net/) -->
   <taskdef name="preprocess" classname="com.objfac.prebop.ant.PreprocessorTask">
@@ -46,7 +46,7 @@
 
   <target name="-init" depends="-init-maven-tasks">
     <artifact:dependencies pathId="build.classpath">
-      <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="2.1.3" />
+      <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version.major}.${groovy.version.minor}" />
     </artifact:dependencies>
     <taskdef name="groovy"
              classname="org.codehaus.groovy.ant.Groovy"
