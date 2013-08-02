@@ -88,4 +88,26 @@ time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  m
         out == expected
     }
     
+    def "Prints recursive method calls"() {
+        when:
+        def out = report(tree(
+            methodCallNode("A", "a", 110+(135+100+(125+(90+115))),
+                methodCallNode("A", "b", 135),
+                methodCallNode("A", "a", 100+(125+90+(115)),
+                    methodCallNode("A", "b", 125),
+                    methodCallNode("A", "a", 90+(115),
+                        methodCallNode("A", "b", 115))))
+        ))
+        
+        then:
+        def expected = '''\
+ %    cumulative   self            self     total    self     total    self     total       
+time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
+55.5        0.37     0.37      3   125.00   125.00   115.00   115.00   135.00   135.00  A.b 
+44.4        0.67     0.30      1   300.00   675.00   300.00   675.00   300.00   675.00  A.a 
+'''
+        out == expected
+        
+    }
+    
 }

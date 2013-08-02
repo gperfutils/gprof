@@ -27,28 +27,45 @@ public class FlatReportNormalizer implements ReportNormalizer {
 
         callTree.visit(new CallTree.NodeVisitor() {
 
-            Map<String, FlatReportMethodElement> entryMap = new HashMap();
+            Map<MethodInfo, FlatReportMethodElement> entryMap = new HashMap();
 
             public void visit(CallTree.Node node) {
                 CallInfo call = node.getData();
                 if (call instanceof MethodCallInfo) {
-                    MethodCallInfo methodCall = (MethodCallInfo) call;
-                    String key = methodCall.getMethod().getName();
-                    FlatReportMethodElement element = entryMap.get(key);
+                    final MethodCallInfo methodCall = (MethodCallInfo) call;
+                    FlatReportMethodElement element = entryMap.get(methodCall.getMethod());
                     if (element == null) {
                         element = new FlatReportMethodElement(methodCall.getMethod());
-                        entryMap.put(key, element);
+                        entryMap.put(methodCall.getMethod(), element);
                         elements.add(element);
                     }
-                    element.setCalls(element.getCalls() + 1);
-                    long selfTime = methodCall.getSelfTime();
-                    element.setSelfTime(element.getSelfTime() + selfTime);
-                    element.setTime(element.getTime() + methodCall.getTime());
-                    element.setMaxSelfTime(Math.max(element.getMaxSelfTime(), selfTime));
-                    element.setMaxTime(Math.max(element.getMaxTime(), methodCall.getTime()));
-                    element.setMinSelfTime(element.getMinSelfTime() == 0 ? selfTime : Math.min(element.getMinSelfTime(), selfTime));
-                    element.setMinTime(element.getMinTime() == 0 ? methodCall.getTime() : Math.min(element.getMinTime(), methodCall.getTime()));
-                    time[0] += selfTime;
+                    boolean recursive = node.getParent().getData() instanceof MethodCallInfo &&
+                            ((MethodCallInfo) node.getParent().getData()).getMethod().equals(methodCall.getMethod());
+                    if (!recursive) {
+                        element.setCalls(element.getCalls() + 1);
+                        
+                        final long[] recursiveTime = { 0 };
+                        node.visit(new CallTree.NodeVisitor() {
+                            @Override
+                            public void visit(CallTree.Node child) {
+                                MethodCallInfo childMethodCall = (MethodCallInfo) child.getData();
+                                if (childMethodCall.getMethod().equals(methodCall.getMethod())) {
+                                    recursiveTime[0] += childMethodCall.getSelfTime();
+                                }
+                            }
+                        });
+                        long selfTime = methodCall.getSelfTime() + recursiveTime[0];
+                        element.setSelfTime(element.getSelfTime() + selfTime);
+                        element.setMaxSelfTime(Math.max(element.getMaxSelfTime(), selfTime));
+                        element.setMinSelfTime(element.getMinSelfTime() == 0 ? selfTime : Math.min(element.getMinSelfTime(), selfTime));
+                        
+                        long totalTime = methodCall.getTime();
+                        element.setTime(element.getTime() + totalTime);
+                        element.setMaxTime(Math.max(element.getMaxTime(), totalTime));
+                        element.setMinTime(element.getMinTime() == 0 ? methodCall.getTime() : Math.min(element.getMinTime(), totalTime));
+                        
+                        time[0] += selfTime;
+                    }
                 }
             }
         });

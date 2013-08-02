@@ -26,7 +26,6 @@ public class FlatReportMethodElement implements ReportElement {
     private long cumulativeTime;
     private long time;
     private long maxTime;
-
     private long minTime;
     private long selfTime;
     private long maxSelfTime;
