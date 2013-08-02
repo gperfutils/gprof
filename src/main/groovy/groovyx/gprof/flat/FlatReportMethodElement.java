@@ -18,18 +18,16 @@ package groovyx.gprof.flat;
 import groovyx.gprof.MethodInfo;
 import groovyx.gprof.ReportElement;
 
-public class FlatReportElement implements ReportElement {
+public class FlatReportMethodElement implements ReportElement {
 
     private MethodInfo method;
-    private String name;
     private long calls;
-    private double timePercent;
+    private float timePercent;
+    private long cumulativeTime;
     private long time;
-    private long minTime;
-    private long maxTime;
-    private long timePerCall;
+    private long selfTime;
 
-    public FlatReportElement(MethodInfo method) {
+    public FlatReportMethodElement(MethodInfo method) {
         this.method = method;
     }
 
@@ -45,8 +43,16 @@ public class FlatReportElement implements ReportElement {
         this.calls = calls;
     }
 
-    public long getTimePerCall() {
-        return timePerCall;
+    public float getTimePerCall() {
+        return time / calls;
+    }
+    
+    public long getCumulativeTime() {
+        return cumulativeTime;
+    }
+    
+    public void setCumulativeTime(long cumulativeTime) {
+        this.cumulativeTime = cumulativeTime;
     }
 
     public long getTime() {
@@ -56,32 +62,24 @@ public class FlatReportElement implements ReportElement {
     public void setTime(long time) {
         this.time = time;
     }
-
-    public long getMinTime() {
-        return minTime;
+    
+    public float getSelfTimePerCall() {
+        return selfTime / calls;
+    }
+    
+    public long getSelfTime() {
+        return selfTime;
+    }
+    
+    public void setSelfTime(long selfTime) {
+        this.selfTime = selfTime;
     }
 
-    public void setMinTime(long minTime) {
-        this.minTime = minTime;
-    }
-
-    public long getMaxTime() {
-        return maxTime;
-    }
-
-    public void setMaxTime(long maxTime) {
-        this.maxTime = maxTime;
-    }
-
-    public void setTimePerCall(long timePerCall) {
-        this.timePerCall = timePerCall;
-    }
-
-    public double getTimePercent() {
+    public float getTimePercent() {
         return timePercent;
     }
 
-    public void setTimePercent(double timePercent) {
+    public void setTimePercent(float timePercent) {
         this.timePercent = timePercent;
     }
 
@@ -90,47 +88,38 @@ public class FlatReportElement implements ReportElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        FlatReportElement that = (FlatReportElement) o;
+        FlatReportMethodElement that = (FlatReportMethodElement) o;
 
         if (calls != that.calls) return false;
-        if (maxTime != that.maxTime) return false;
-        if (minTime != that.minTime) return false;
+        if (cumulativeTime != that.cumulativeTime) return false;
+        if (selfTime != that.selfTime) return false;
         if (time != that.time) return false;
-        if (timePerCall != that.timePerCall) return false;
-        if (Double.compare(that.timePercent, timePercent) != 0) return false;
+        if (Float.compare(that.timePercent, timePercent) != 0) return false;
         if (method != null ? !method.equals(that.method) : that.method != null) return false;
-        if (name != null ? !name.equals(that.name) : that.name != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        result = method != null ? method.hashCode() : 0;
-        result = 31 * result + (name != null ? name.hashCode() : 0);
+        int result = method != null ? method.hashCode() : 0;
         result = 31 * result + (int) (calls ^ (calls >>> 32));
-        temp = Double.doubleToLongBits(timePercent);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + (timePercent != +0.0f ? Float.floatToIntBits(timePercent) : 0);
         result = 31 * result + (int) (time ^ (time >>> 32));
-        result = 31 * result + (int) (minTime ^ (minTime >>> 32));
-        result = 31 * result + (int) (maxTime ^ (maxTime >>> 32));
-        result = 31 * result + (int) (timePerCall ^ (timePerCall >>> 32));
+        result = 31 * result + (int) (cumulativeTime ^ (cumulativeTime >>> 32));
+        result = 31 * result + (int) (selfTime ^ (selfTime >>> 32));
         return result;
     }
 
     @Override
     public String toString() {
-        return "FlatReportElement{" +
+        return "FlatReportMethodElement{" +
                 "method=" + method +
-                ", name='" + name + '\'' +
                 ", calls=" + calls +
                 ", timePercent=" + timePercent +
                 ", time=" + time +
-                ", minTime=" + minTime +
-                ", maxTime=" + maxTime +
-                ", timePerCall=" + timePerCall +
+                ", cumulativeTime=" + cumulativeTime +
+                ", selfTime=" + selfTime +
                 '}';
     }
 }

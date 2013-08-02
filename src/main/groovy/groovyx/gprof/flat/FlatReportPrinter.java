@@ -18,17 +18,19 @@ package groovyx.gprof.flat;
 import groovyx.gprof.ReportPrinter;
 
 import java.io.PrintWriter;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.Format;
 import java.util.*;
 
 import static groovyx.gprof.flat.FlatReportPrinter.COLUMN.CALLS;
 
-public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
+public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement> {
 
     private static String SP = "  ";
 
     @Override
-    public void print(List<FlatReportElement> elements, PrintWriter writer) {
-        Collections.sort(elements, new DefaultComparator());
+    public void print(List<FlatReportMethodElement> elements, PrintWriter writer) {
         List<Map<COLUMN, String>> rows = createRowValueList(elements);
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
         writeHeader(writer, columnSizeMap);
@@ -69,11 +71,11 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
             columnSizeMap.get(columns[i]);
             int columnSize = columnSizeMap.get(column);
             switch (column) {
+                case CUMULATIVE_TIME:
+                case SELF_TIME:
                 case CALLS:
-                case TIME_TOTAL:
-                case TIME_MAX:
-                case TIME_MIN:
-                case TIME_AVG:
+                case SELF_TIME_PER_CALL:
+                case TOTAL_TIME_PER_CALL:
                     headerFormatBuff.append(String.format("%%%ds", columnSize));
                     break;
                 default:
@@ -84,7 +86,11 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
         String headerFormat = headerFormatBuff.append("%n").toString();
         Object[] headerValues = new String[columnNum];
         for (int i = 0; i < columnNum; i++) {
-            headerValues[i] = columns[i].name;
+            headerValues[i] = columns[i].header1;
+        }
+        writer.printf(headerFormat, headerValues);
+        for (int i = 0; i < columnNum; i++) {
+            headerValues[i] = columns[i].header2;
         }
         writer.printf(headerFormat, headerValues);
     }
@@ -92,7 +98,7 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
     private Map<COLUMN, Integer> calculateColumnSize(List<Map<COLUMN, String>> rows) {
         Map<COLUMN, Integer> colSizeMap = new HashMap();
         for (COLUMN col : COLUMN.values()) {
-            colSizeMap.put(col, col.name.length());
+            colSizeMap.put(col, Math.max(col.header1.length(), col.header2.length()));
         }
         for (Map<COLUMN, String> row : rows) {
             for (COLUMN col : COLUMN.values()) {
@@ -102,18 +108,17 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
         return colSizeMap;
     }
 
-    private List<Map<COLUMN, String>> createRowValueList(List<FlatReportElement> elements) {
+    private List<Map<COLUMN, String>> createRowValueList(List<FlatReportMethodElement> elements) {
         List<Map<COLUMN, String>> rows = new ArrayList(elements.size());
-        for (FlatReportElement element : elements) {
+        for (FlatReportMethodElement element : elements) {
             Map<COLUMN, String> row = new HashMap();
-            row.put(COLUMN.TIME_PERCENT, String.format("%.2f", element.getTimePercent()));
-            row.put(COLUMN.TIME_TOTAL, String.format("%.2f", element.getTime() * 0.000001));
+            row.put(COLUMN.TIME_PERCENT, Formatter.percent(element.getTimePercent()));
+            row.put(COLUMN.CUMULATIVE_TIME, Formatter.sec(element.getCumulativeTime()));
+            row.put(COLUMN.SELF_TIME, Formatter.sec(element.getSelfTime()));
             row.put(CALLS, String.format("%d", element.getCalls()));
-            row.put(COLUMN.TIME_MIN, String.format("%.2f", element.getMinTime() * 0.000001));
-            row.put(COLUMN.TIME_MAX, String.format("%.2f", element.getMaxTime() * 0.000001));
-            row.put(COLUMN.TIME_AVG, String.format("%.2f", element.getTimePerCall() * 0.000001));
-            row.put(COLUMN.METHOD_NAME, element.getMethod().getMethodName());
-            row.put(COLUMN.CLASS_NAME, element.getMethod().getClassName());
+            row.put(COLUMN.SELF_TIME_PER_CALL, Formatter.msec(element.getSelfTimePerCall()));
+            row.put(COLUMN.TOTAL_TIME_PER_CALL, Formatter.msec(element.getTimePerCall()));
+            row.put(COLUMN.NAME, Formatter.name(element.getMethod().getClassName(), element.getMethod().getMethodName()));
             rows.add(row);
         }
         return rows;
@@ -121,40 +126,77 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportElement> {
 
     public enum COLUMN {
 
-        TIME_PERCENT("%", "%%%ds"),
-        CALLS("calls", "%%%ds"),
-        TIME_TOTAL("total ms", "%%%ds"),
-        TIME_AVG("ms/call", "%%%ds"),
-        TIME_MIN("min ms", "%%%ds"),
-        TIME_MAX("max ms", "%%%ds"),
-        METHOD_NAME("method", "%%-%ds"),
-        CLASS_NAME("class", "%%-%ds");
+        TIME_PERCENT(
+                " %  ", 
+                "time",
+                "%%%ds"),
+        CUMULATIVE_TIME(
+                "cumulative",
+                " seconds  ",
+                "%%%ds"),
+        SELF_TIME(
+                " self  ",
+                "seconds",
+                "%%%ds"),
+        CALLS(
+                "     ",
+                "calls",
+                "%%%ds"),
+        SELF_TIME_PER_CALL(
+                " self  ",
+                "ms/call",
+                "%%%ds"),
+        TOTAL_TIME_PER_CALL(
+                " total ",
+                "ms/call",
+                "%%%ds"),
+        NAME(
+                "    ",
+                "name",
+                "%%-%ds"),
+        ;
 
-        private String name;
+        private String header1;
+        private String header2;
         private String format;
 
-        COLUMN(String name, String format) {
-            this.name = name;
+        COLUMN(String header1, String header2, String format) {
+            this.header1 = header1;
+            this.header2 = header2;
             this.format = format;
         }
     }
+    
+    private static class Formatter {
 
-    static class DefaultComparator implements Comparator<FlatReportElement> {
-
-        @Override
-        public int compare(FlatReportElement o1, FlatReportElement o2) {
-            int r = -Long.compare(o1.getTime(), o2.getTime());
-            if (r == 0) {
-                r = -(((Long) o1.getCalls()).compareTo(o2.getCalls()));
-                if (r == 0) {
-                    r = o1.getMethod().getClassName().compareTo(o2.getMethod().getClassName());
-                    if (r == 0) {
-                        r = o1.getMethod().getMethodName().compareTo(o2.getMethod().getMethodName());
-                    }
-                }
-            }
-            return r;
+        private static Format TIME_PERCENT_FORMAT;
+        private static Format TIME_FORMAT;
+        static {
+            DecimalFormat df;
+            df = new DecimalFormat("0.00");
+            df.setRoundingMode(RoundingMode.DOWN);
+            TIME_PERCENT_FORMAT = df;
+            df = new DecimalFormat("0.00");
+            df.setRoundingMode(RoundingMode.DOWN);
+            TIME_FORMAT = df;
         }
+
+        public static String sec(float ns) {
+            return TIME_FORMAT.format(ns * 0.000000001);
+        }
+        
+        public static String msec(float ns) {
+            return TIME_FORMAT.format(ns * 0.000001);
+        }
+
+        public static String percent(double percent) {
+            return TIME_PERCENT_FORMAT.format(percent);
+        }
+
+        public static String name(String className, String methodName) {
+            return String.format("%s.%s", className, methodName);
+        }
+
     }
 
 }

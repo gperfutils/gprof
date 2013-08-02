@@ -31,7 +31,7 @@ public class FlatReport extends Report {
     @Override
     public void prettyPrint(Map args, PrintWriter writer) {
         FlatReportNormalizer normalizer = new FlatReportNormalizer();
-        List<FlatReportElement> elements = normalizer.normalize(callTree);
+        List<FlatReportMethodElement> elements = normalizer.normalize(callTree);
         FlatReportPrinter printer = new FlatReportPrinter();
         printer.print(elements, writer);
     }

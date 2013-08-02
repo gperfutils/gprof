@@ -17,46 +17,62 @@ package groovyx.gprof.flat;
 
 import groovyx.gprof.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FlatReportNormalizer implements ReportNormalizer {
 
-    public List<FlatReportElement> normalize(CallTree callTree) {
-        final List<FlatReportElement> elements = new ArrayList();
+    public List<FlatReportMethodElement> normalize(CallTree callTree) {
+        final List<FlatReportMethodElement> elements = new ArrayList();
         final long[] time = { 0L };
 
         callTree.visit(new CallTree.NodeVisitor() {
 
-            Map<String, FlatReportElement> entryMap = new HashMap();
+            Map<String, FlatReportMethodElement> entryMap = new HashMap();
 
             public void visit(CallTree.Node node) {
                 CallInfo call = node.getData();
                 if (call instanceof MethodCallInfo) {
                     MethodCallInfo methodCall = (MethodCallInfo) call;
                     String key = methodCall.getMethod().getName();
-                    FlatReportElement element = entryMap.get(key);
+                    FlatReportMethodElement element = entryMap.get(key);
                     if (element == null) {
-                        element = new FlatReportElement(methodCall.getMethod());
+                        element = new FlatReportMethodElement(methodCall.getMethod());
                         entryMap.put(key, element);
                         elements.add(element);
                     }
                     element.setCalls(element.getCalls() + 1);
                     long theTime = methodCall.getSelfTime();
-                    element.setTime(element.getTime() + theTime);
-                    element.setMinTime(element.getMinTime() > 0 ? Math.min(element.getMinTime(), theTime) : theTime);
-                    element.setMaxTime(Math.max(element.getMaxTime(), theTime));
+                    element.setSelfTime(element.getSelfTime() + theTime);
+                    element.setTime(element.getTime() + methodCall.getTime());
                     time[0] += theTime;
                 }
             }
         });
-        for (FlatReportElement e : elements) {
-            e.setTimePercent((float) e.getTime() / time[0] * 100);
-            e.setTimePerCall(e.getTime() / e.getCalls());
+        
+        Collections.sort(elements, new Comparator());
+        
+        long cumulativeTime = 0;
+        for (FlatReportMethodElement e : elements) {
+            cumulativeTime += e.getSelfTime();  
+            e.setTimePercent((float) e.getSelfTime() / time[0] * 100);
+            e.setCumulativeTime(cumulativeTime);
         }
         return elements;
+    }
+    
+    static class Comparator implements java.util.Comparator<FlatReportMethodElement> {
+
+        @Override
+        public int compare(FlatReportMethodElement o1, FlatReportMethodElement o2) {
+            int r = -Long.compare(o1.getSelfTime(), o2.getSelfTime());
+            if (r == 0) {
+                r = -(((Long) o1.getCalls()).compareTo(o2.getCalls()));
+                if (r == 0) {
+                    r = o1.getMethod().getName().compareTo(o2.getMethod().getName());
+                }
+            }
+            return r;
+        }
     }
 
 }

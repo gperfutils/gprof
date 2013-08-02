@@ -34,6 +34,7 @@ class TestHelper {
         def node = new CallTree.Node(element)
         children.each { child ->
             node.addChild(child)
+            node.data.childrenTime += child.data.time 
         }
         node
     }
