@@ -41,10 +41,14 @@ public class FlatReportNormalizer implements ReportNormalizer {
                         elements.add(element);
                     }
                     element.setCalls(element.getCalls() + 1);
-                    long theTime = methodCall.getSelfTime();
-                    element.setSelfTime(element.getSelfTime() + theTime);
+                    long selfTime = methodCall.getSelfTime();
+                    element.setSelfTime(element.getSelfTime() + selfTime);
                     element.setTime(element.getTime() + methodCall.getTime());
-                    time[0] += theTime;
+                    element.setMaxSelfTime(Math.max(element.getMaxSelfTime(), selfTime));
+                    element.setMaxTime(Math.max(element.getMaxTime(), methodCall.getTime()));
+                    element.setMinSelfTime(element.getMinSelfTime() == 0 ? selfTime : Math.min(element.getMinSelfTime(), selfTime));
+                    element.setMinTime(element.getMinTime() == 0 ? methodCall.getTime() : Math.min(element.getMinTime(), methodCall.getTime()));
+                    time[0] += selfTime;
                 }
             }
         });

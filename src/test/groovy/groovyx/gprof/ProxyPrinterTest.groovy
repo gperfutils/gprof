@@ -31,7 +31,7 @@ class ProxyPrinterTest extends Specification {
         def os = new ByteArrayOutputStream()
         System.out = new PrintStream(os)
         new ProxyReport(tree( 
-            methodCallNode("A", "a", 1000)
+            methodCallNode("A", "a", 100)
         )).prettyPrint()
         def out = os.toString()
         
@@ -39,15 +39,15 @@ class ProxyPrinterTest extends Specification {
         def expected = """\
 Flat:
 
- %      cumulative   self            self     total       
-time     seconds    seconds  calls  ms/call  ms/call  name
-100.00        1.00     1.00      1  1000.00  1000.00  A.a 
+ %     cumulative   self            self     total    self     total    self     total       
+time    seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
+100.0        0.10     0.10      1   100.00   100.00   100.00   100.00   100.00   100.00  A.a 
 
 Call graph:
 
 index  % time  self  children  calls  name             
-               1.00      0.00    1/1      <spontaneous>
-[1]     100.0  1.00      0.00      1  A.a [1]          
+               0.10      0.00    1/1      <spontaneous>
+[1]     100.0  0.10      0.00      1  A.a [1]          
 -------------------------------------------------------
 """
         out == expected
@@ -57,22 +57,22 @@ index  % time  self  children  calls  name
     def "Prints mixed report"() {
         when:
         def out = str(tree(
-            methodCallNode("A", "a", 1000)
+            methodCallNode("A", "a", 100)
         ))
 
         then:
         def expected = """\
 Flat:
 
- %      cumulative   self            self     total       
-time     seconds    seconds  calls  ms/call  ms/call  name
-100.00        1.00     1.00      1  1000.00  1000.00  A.a 
+ %     cumulative   self            self     total    self     total    self     total       
+time    seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
+100.0        0.10     0.10      1   100.00   100.00   100.00   100.00   100.00   100.00  A.a 
 
 Call graph:
 
 index  % time  self  children  calls  name             
-               1.00      0.00    1/1      <spontaneous>
-[1]     100.0  1.00      0.00      1  A.a [1]          
+               0.10      0.00    1/1      <spontaneous>
+[1]     100.0  0.10      0.00      1  A.a [1]          
 -------------------------------------------------------
 """
         out == expected

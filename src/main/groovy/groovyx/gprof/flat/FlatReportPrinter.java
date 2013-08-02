@@ -76,6 +76,10 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement>
                 case CALLS:
                 case SELF_TIME_PER_CALL:
                 case TOTAL_TIME_PER_CALL:
+                case SELF_MIN_TIME:
+                case TOTAL_MIN_TIME:
+                case SELF_MAX_TIME:
+                case TOTAL_MAX_TIME:
                     headerFormatBuff.append(String.format("%%%ds", columnSize));
                     break;
                 default:
@@ -118,6 +122,10 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement>
             row.put(CALLS, String.format("%d", element.getCalls()));
             row.put(COLUMN.SELF_TIME_PER_CALL, Formatter.msec(element.getSelfTimePerCall()));
             row.put(COLUMN.TOTAL_TIME_PER_CALL, Formatter.msec(element.getTimePerCall()));
+            row.put(COLUMN.SELF_MIN_TIME, Formatter.msec(element.getMinSelfTime()));
+            row.put(COLUMN.TOTAL_MIN_TIME, Formatter.msec(element.getMinTime()));
+            row.put(COLUMN.SELF_MAX_TIME, Formatter.msec(element.getMaxSelfTime()));
+            row.put(COLUMN.TOTAL_MAX_TIME, Formatter.msec(element.getMaxTime()));
             row.put(COLUMN.NAME, Formatter.name(element.getMethod().getClassName(), element.getMethod().getMethodName()));
             rows.add(row);
         }
@@ -150,6 +158,22 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement>
                 " total ",
                 "ms/call",
                 "%%%ds"),
+        SELF_MIN_TIME(
+                " self  ",
+                "ms(min)",
+                "%%%ds"),
+        TOTAL_MIN_TIME(
+                " total ",
+                "ms(min)",
+                "%%%ds"),
+        SELF_MAX_TIME(
+                " self  ",
+                "ms(max)",
+                "%%%ds"),
+        TOTAL_MAX_TIME(
+                " total ",
+                "ms(max)",
+                "%%%ds"),
         NAME(
                 "    ",
                 "name",
@@ -173,7 +197,7 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement>
         private static Format TIME_FORMAT;
         static {
             DecimalFormat df;
-            df = new DecimalFormat("0.00");
+            df = new DecimalFormat("0.0");
             df.setRoundingMode(RoundingMode.DOWN);
             TIME_PERCENT_FORMAT = df;
             df = new DecimalFormat("0.00");

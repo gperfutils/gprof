@@ -25,7 +25,12 @@ public class FlatReportMethodElement implements ReportElement {
     private float timePercent;
     private long cumulativeTime;
     private long time;
+    private long maxTime;
+
+    private long minTime;
     private long selfTime;
+    private long maxSelfTime;
+    private long minSelfTime;
 
     public FlatReportMethodElement(MethodInfo method) {
         this.method = method;
@@ -62,7 +67,23 @@ public class FlatReportMethodElement implements ReportElement {
     public void setTime(long time) {
         this.time = time;
     }
+
+    public long getMaxTime() {
+        return maxTime;
+    }
+
+    public void setMaxTime(long maxTime) {
+        this.maxTime = maxTime;
+    }
     
+    public long getMinTime() {
+        return minTime;
+    }
+
+    public void setMinTime(long minTime) {
+        this.minTime = minTime;
+    }
+
     public float getSelfTimePerCall() {
         return selfTime / calls;
     }
@@ -73,6 +94,22 @@ public class FlatReportMethodElement implements ReportElement {
     
     public void setSelfTime(long selfTime) {
         this.selfTime = selfTime;
+    }
+
+    public long getMaxSelfTime() {
+        return maxSelfTime;
+    }
+
+    public void setMaxSelfTime(long maxSelfTime) {
+        this.maxSelfTime = maxSelfTime;
+    }
+    
+    public long getMinSelfTime() {
+        return minSelfTime;
+    }
+
+    public void setMinSelfTime(long minSelfTime) {
+        this.minSelfTime = minSelfTime;
     }
 
     public float getTimePercent() {
@@ -92,6 +129,10 @@ public class FlatReportMethodElement implements ReportElement {
 
         if (calls != that.calls) return false;
         if (cumulativeTime != that.cumulativeTime) return false;
+        if (maxSelfTime != that.maxSelfTime) return false;
+        if (maxTime != that.maxTime) return false;
+        if (minSelfTime != that.minSelfTime) return false;
+        if (minTime != that.minTime) return false;
         if (selfTime != that.selfTime) return false;
         if (time != that.time) return false;
         if (Float.compare(that.timePercent, timePercent) != 0) return false;
@@ -105,9 +146,13 @@ public class FlatReportMethodElement implements ReportElement {
         int result = method != null ? method.hashCode() : 0;
         result = 31 * result + (int) (calls ^ (calls >>> 32));
         result = 31 * result + (timePercent != +0.0f ? Float.floatToIntBits(timePercent) : 0);
-        result = 31 * result + (int) (time ^ (time >>> 32));
         result = 31 * result + (int) (cumulativeTime ^ (cumulativeTime >>> 32));
+        result = 31 * result + (int) (time ^ (time >>> 32));
+        result = 31 * result + (int) (maxTime ^ (maxTime >>> 32));
+        result = 31 * result + (int) (minTime ^ (minTime >>> 32));
         result = 31 * result + (int) (selfTime ^ (selfTime >>> 32));
+        result = 31 * result + (int) (maxSelfTime ^ (maxSelfTime >>> 32));
+        result = 31 * result + (int) (minSelfTime ^ (minSelfTime >>> 32));
         return result;
     }
 
@@ -117,9 +162,13 @@ public class FlatReportMethodElement implements ReportElement {
                 "method=" + method +
                 ", calls=" + calls +
                 ", timePercent=" + timePercent +
-                ", time=" + time +
                 ", cumulativeTime=" + cumulativeTime +
+                ", time=" + time +
+                ", maxTime=" + maxTime +
+                ", minTime=" + minTime +
                 ", selfTime=" + selfTime +
+                ", maxSelfTime=" + maxSelfTime +
+                ", minSelfTime=" + minSelfTime +
                 '}';
     }
 }
