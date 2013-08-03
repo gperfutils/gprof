@@ -21,6 +21,8 @@ class ProfilerTest extends Specification {
 
         then:
         flatten(p.report.callTree)
+            .find { true }
+            .methodElements
             .find { e -> e.method == method("java.lang.Thread", "sleep") }
             .time == 0
     }
@@ -31,7 +33,10 @@ class ProfilerTest extends Specification {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        flatten(p.report.callTree).find { e ->
+        flatten(p.report.callTree)
+            .find { true }
+            .methodElements
+            .find { e ->
             if (e.method == method(Thread.class.name, "sleep") &&
                 e.calls == 1) {
                 b = true
@@ -51,7 +56,10 @@ class ProfilerTest extends Specification {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        flatten(p.report.callTree).find { e ->
+        flatten(p.report.callTree)
+            .find { true }
+            .methodElements
+            .find { e ->
             if (e.method == method(Thread.class.name, "sleep") &&
                 e.calls == 2) {
                 b = true
@@ -72,7 +80,10 @@ class ProfilerTest extends Specification {
         Thread.sleep(1)
         p.stop()
         boolean b = false
-        flatten(p.report.callTree).find { e ->
+        flatten(p.report.callTree)
+            .find { true }
+            .methodElements
+            .find { e ->
             if (e.method == method(Thread.class.name, "sleep") &&
                 e.calls == 1) {
                 b = true

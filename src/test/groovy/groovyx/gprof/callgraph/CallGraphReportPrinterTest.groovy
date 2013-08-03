@@ -258,7 +258,6 @@ index  % time  self  children  calls  name
                0.25      0.00    1/1      <spontaneous>
 [2]      33.3  0.25      0.00      1  A.c [2]          
 -------------------------------------------------------
-
 '''
         out == expected
     }

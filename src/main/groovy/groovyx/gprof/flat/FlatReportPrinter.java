@@ -16,6 +16,7 @@
 package groovyx.gprof.flat;
 
 import groovyx.gprof.ReportPrinter;
+import groovyx.gprof.ThreadInfo;
 
 import java.io.PrintWriter;
 import java.math.RoundingMode;
@@ -25,17 +26,48 @@ import java.util.*;
 
 import static groovyx.gprof.flat.FlatReportPrinter.COLUMN.CALLS;
 
-public class FlatReportPrinter implements ReportPrinter<FlatReportMethodElement> {
+public class FlatReportPrinter implements ReportPrinter<FlatReportThreadElement> {
 
     private static String SP = "  ";
+    
+    private boolean separateThread;
+
+    public void setSeparateThread(boolean separateThread) {
+        this.separateThread = separateThread;
+    }
 
     @Override
-    public void print(List<FlatReportMethodElement> elements, PrintWriter writer) {
-        List<Map<COLUMN, String>> rows = createRowValueList(elements);
+    public void print(List<FlatReportThreadElement> threadElements, PrintWriter writer) {
+        for (Iterator<FlatReportThreadElement> it = threadElements.iterator(); it.hasNext();) {
+            FlatReportThreadElement threadElement = it.next();
+            if (threadElement.getMethodElements().isEmpty()) {
+                continue;
+            }
+            if (separateThread) {
+                printThreadHeader(threadElement, writer);
+            }
+            printThread(threadElement, writer);
+            if (separateThread && it.hasNext()) {
+                printThreadSeparator(writer);    
+            }
+        }
+        writer.flush();
+    }
+
+    protected void printThreadHeader(FlatReportThreadElement threadElement, PrintWriter writer) {
+        ThreadInfo thread = threadElement.getThread();
+        writer.printf("#%d %s%n%n", thread.getThreadId(), thread.getThreadName());
+    }
+
+    protected void printThreadSeparator(PrintWriter writer) {
+        writer.println();
+    }
+    
+    private void printThread(FlatReportThreadElement threadElement, PrintWriter writer) {
+        List<Map<COLUMN, String>> rows = createRowValueList(threadElement.getMethodElements());
         Map<COLUMN, Integer> columnSizeMap = calculateColumnSize(rows);
         writeHeader(writer, columnSizeMap);
         writeRows(writer, rows, columnSizeMap);
-        writer.flush();
     }
 
     private void writeRows(PrintWriter writer, List<Map<COLUMN, String>> rows, Map<COLUMN, Integer> columnSizeMap) {

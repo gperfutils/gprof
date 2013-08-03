@@ -21,30 +21,71 @@ import java.util.*;
 
 public class FlatReportNormalizer implements ReportNormalizer {
 
-    public List<FlatReportMethodElement> normalize(CallTree callTree) {
-        final List<FlatReportMethodElement> elements = new ArrayList();
-        final long[] time = { 0L };
+    private boolean separateThread = false;
+
+    public void setSeparateThread(boolean separateThread) {
+        this.separateThread = separateThread;
+    }
+
+    public List<FlatReportThreadElement> normalize(final CallTree callTree) {
+        final List<FlatReportThreadElement> elements = new ArrayList();
 
         callTree.visit(new CallTree.NodeVisitor() {
+            Stack<Map<MethodInfo, FlatReportMethodElement>> methodElementMapStack = new Stack();
+            
+            @Override
+            public void exit(CallTree.Node node) {
+                CallInfo call = node.getData();
+                if (call instanceof ThreadRunInfo) {
+                    ThreadRunInfo threadRun = (ThreadRunInfo) call;
+                    if (separateThread || threadRun.equals(callTree.getRoot().getData())) {
+                        Map<MethodInfo, FlatReportMethodElement> methodElementMap = methodElementMapStack.pop();
+                        List<FlatReportMethodElement> methodElements = new ArrayList(methodElementMap.values());
 
-            Map<MethodInfo, FlatReportMethodElement> entryMap = new HashMap();
+                        // sort first for calculating the cumulative time
+                        Collections.sort(methodElements, new MethodElementComparator());
+
+                        FlatReportThreadElement threadElement = new FlatReportThreadElement(threadRun.getThread());
+                        
+                        long totalTime = 0;
+                        for (FlatReportMethodElement methodElement : methodElements) {
+                            totalTime += methodElement.getSelfTime();    
+                        }
+                        
+                        long cumulativeTime = 0;
+                        for (FlatReportMethodElement methodElement : methodElements) {
+                            cumulativeTime += methodElement.getSelfTime();
+                            methodElement.setTimePercent((float) methodElement.getSelfTime() / totalTime * 100);
+                            methodElement.setCumulativeTime(cumulativeTime);
+                            threadElement.addMethodElement(methodElement);
+                        }
+                        
+                        elements.add(threadElement);
+                    }
+                }
+            }
 
             public void visit(CallTree.Node node) {
                 CallInfo call = node.getData();
-                if (call instanceof MethodCallInfo) {
+                if (call instanceof  ThreadRunInfo) {
+                    ThreadRunInfo threadRun = (ThreadRunInfo) call;
+                    if (separateThread || threadRun.equals(callTree.getRoot().getData())) {
+                        methodElementMapStack.push(new HashMap());
+                    }
+                } else if (call instanceof MethodCallInfo) {
                     final MethodCallInfo methodCall = (MethodCallInfo) call;
-                    FlatReportMethodElement element = entryMap.get(methodCall.getMethod());
+                    Map<MethodInfo, FlatReportMethodElement> methodElementMap = methodElementMapStack.peek();
+                    FlatReportMethodElement element = methodElementMap.get(methodCall.getMethod());
                     if (element == null) {
                         element = new FlatReportMethodElement(methodCall.getMethod());
-                        entryMap.put(methodCall.getMethod(), element);
-                        elements.add(element);
+                        methodElementMap.put(methodCall.getMethod(), element);
                     }
                     boolean recursive = node.getParent().getData() instanceof MethodCallInfo &&
                             ((MethodCallInfo) node.getParent().getData()).getMethod().equals(methodCall.getMethod());
                     if (!recursive) {
                         element.setCalls(element.getCalls() + 1);
-                        
-                        final long[] recursiveTime = { 0 };
+
+                        final long[] recursiveTime = {0};
                         node.visit(new CallTree.NodeVisitor() {
                             @Override
                             public void visit(CallTree.Node child) {
@@ -58,30 +99,31 @@ public class FlatReportNormalizer implements ReportNormalizer {
                         element.setSelfTime(element.getSelfTime() + selfTime);
                         element.setMaxSelfTime(Math.max(element.getMaxSelfTime(), selfTime));
                         element.setMinSelfTime(element.getMinSelfTime() == 0 ? selfTime : Math.min(element.getMinSelfTime(), selfTime));
-                        
+
                         long totalTime = methodCall.getTime();
                         element.setTime(element.getTime() + totalTime);
                         element.setMaxTime(Math.max(element.getMaxTime(), totalTime));
                         element.setMinTime(element.getMinTime() == 0 ? methodCall.getTime() : Math.min(element.getMinTime(), totalTime));
-                        
-                        time[0] += selfTime;
                     }
                 }
             }
         });
         
-        Collections.sort(elements, new Comparator());
+        Collections.sort(elements, new ThreadElementComparator());
         
-        long cumulativeTime = 0;
-        for (FlatReportMethodElement e : elements) {
-            cumulativeTime += e.getSelfTime();  
-            e.setTimePercent((float) e.getSelfTime() / time[0] * 100);
-            e.setCumulativeTime(cumulativeTime);
-        }
         return elements;
     }
     
-    static class Comparator implements java.util.Comparator<FlatReportMethodElement> {
+    static class ThreadElementComparator implements Comparator<FlatReportThreadElement> {
+
+        @Override
+        public int compare(FlatReportThreadElement o1, FlatReportThreadElement o2) {
+            return Long.compare(o1.getThread().getThreadId(), o2.getThread().getThreadId());
+        }
+        
+    }
+    
+    static class MethodElementComparator implements Comparator<FlatReportMethodElement> {
 
         @Override
         public int compare(FlatReportMethodElement o1, FlatReportMethodElement o2) {

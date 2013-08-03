@@ -98,22 +98,33 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
     }
     
     @Override
-    public void print(List<CallGraphReportThreadElement> elements, PrintWriter writer) {
-        if (!elements.isEmpty()) {
-            for (CallGraphReportThreadElement te : (List<CallGraphReportThreadElement>) elements) {
-                printElement(te, writer);
+    public void print(List<CallGraphReportThreadElement> threadElements, PrintWriter writer) {
+        for (Iterator<CallGraphReportThreadElement> it = threadElements.iterator(); it.hasNext();) {
+            CallGraphReportThreadElement threadElement = it.next();
+            if (threadElement.getSubElements().isEmpty()) {
+                continue;
+            }
+            if (separateThread) {
+                printThreadHeader(threadElement, writer);
+            }
+            printThread(threadElement, writer);
+            if (separateThread && it.hasNext()) {
+                printThreadSeparator(writer);
             }
         }
+        writer.flush();
+    }
+
+    protected void printThreadHeader(CallGraphReportThreadElement threadElement, PrintWriter writer) {
+        ThreadInfo thread = threadElement.getThread();
+        writer.printf("#%d %s%n%n", thread.getThreadId(), thread.getThreadName());
+    }
+
+    protected void printThreadSeparator(PrintWriter writer) {
+        writer.println();
     }
     
-    protected void printElement(CallGraphReportThreadElement te, PrintWriter writer) {
-        if (te.getSubElements().isEmpty()) {
-            return;    
-        }
-        if (separateThread) {
-            printThread(te, writer);     
-        }
-        
+    protected void printThread(CallGraphReportThreadElement te, PrintWriter writer) {
         Collection<CallGraphReportMethodElement> elements = te.getSubElements();
         Map<Long, CallGraphReportMethodElement> graphTable = new HashMap();
         for (CallGraphReportMethodElement entry : elements) {
@@ -335,12 +346,6 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
                 writer.println(separator);
             }
         }
-        
-        if (separateThread) {
-            printThreadSeparator(rowWidth, writer);
-        }
-        
-        writer.flush();
     }
 
     private Object primaryLine(CallGraphReportMethodElement element) {
@@ -367,15 +372,6 @@ public class CallGraphReportPrinter implements ReportPrinter<CallGraphReportThre
                 Formatter.primaryCalls(element.getCalls(), element.getRecursiveCalls()),
                 Column.NAME,
                 name);
-    }
-
-    protected void printThread(CallGraphReportThreadElement threadElement, PrintWriter writer) {
-        ThreadInfo thread = threadElement.getThread();
-        writer.printf("#%d %s%n%n", thread.getThreadId(), thread.getThreadName());
-    }
-    
-    protected void printThreadSeparator(int width, PrintWriter writer) {
-        writer.println();    
     }
 
     private String methodSeparator(int rowWidth) {

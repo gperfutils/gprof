@@ -30,9 +30,15 @@ public class FlatReport extends Report {
     
     @Override
     public void prettyPrint(Map args, PrintWriter writer) {
+        boolean separateThread =
+                args.get("separateThread") instanceof Boolean ?
+                        (Boolean) args.get("separateThread") : false;
+        
         FlatReportNormalizer normalizer = new FlatReportNormalizer();
-        List<FlatReportMethodElement> elements = normalizer.normalize(callTree);
+        normalizer.setSeparateThread(separateThread);
+        List<FlatReportThreadElement> elements = normalizer.normalize(callTree);
         FlatReportPrinter printer = new FlatReportPrinter();
+        printer.setSeparateThread(separateThread);
         printer.print(elements, writer);
     }
 
