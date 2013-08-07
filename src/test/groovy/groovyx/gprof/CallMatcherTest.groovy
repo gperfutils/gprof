@@ -15,73 +15,64 @@
  */
 package groovyx.gprof
 
-import org.junit.Test
+import spock.lang.Specification
 
-class CallMatcherTest {
+class CallMatcherTest extends Specification {
 
-    @Test void "does not use wildcards"() {
+    def "pattern does not include wildcards"() {
+        expect:
         def matcher = new CallMatcher("java.lang.String.getClass")
-        assert matcher.match("java.lang.String.getClass")
-        assert !matcher.match("java.lang.String.getClassLoader")
+        matcher.match(text) == matched
+        
+        where:
+        text  | matched
+        "java.lang.String.getClass" | true
+        "java.lang.String.getClassLoader" | false
     }
 
-    @Test void "use '*' wildcard"() {
-        def matcher
-
-        matcher = new CallMatcher("*")
-        assert matcher.match("java.lang.String.ctor")
-        assert matcher.match("")
-
-        matcher = new CallMatcher("****")
-        assert matcher.match("java.lang.String.ctor")
-        assert matcher.match("")
-
-        matcher = new CallMatcher("java.*")
-        assert matcher.match("java.lang.String.ctor")
-        assert !matcher.match("javax.lang.String.ctor")
-        assert !matcher.match("xjava.lang.String.ctor")
-
-        matcher = new CallMatcher("*.ctor")
-        assert matcher.match("java.lang.String.ctor")
-        assert !matcher.match("java.lang.String.size")
-        assert !matcher.match("java.lang.String.ctorx")
-
-        matcher = new CallMatcher("java.*.ctor")
-        assert matcher.match("java.lang.String.ctor")
-        assert !matcher.match("java.lang.String.size")
-        assert !matcher.match("javax.lang.String.ctor")
-
-        matcher = new CallMatcher("*.lang.*")
-        assert matcher.match("java.lang.String.ctor")
-        assert !matcher.match("java.util.List.ctor")
-
-        matcher = new CallMatcher("*.*.*")
-        assert matcher.match("java.lang.String.ctor")
-        assert !matcher.match("Foo.ctor")
+    def "pattern includes '*' wildcard(s)"() {
+        expect:
+        def matcher = new CallMatcher(pattern)
+        matcher.match(text) == accepted
+        
+        where:
+        pattern | text | accepted
+        "*" | "java.lang.String.ctor" | true
+        "*" | "" | true
+        "****" | "java.lang.String.ctor" | true
+        "****" | "" | true
+        "java.*" | "java.lang.String.ctor" | true
+        "java.*" | "javax.lang.String.ctor" | false
+        "java.*" | "xjava.lang.String.ctor" | false
+        "*.ctor" | "java.lang.String.ctor" | true
+        "*.ctor" | "java.lang.String.size" | false
+        "*.ctor" | "java.lang.String.ctorx" | false
+        "java.*.ctor" | "java.lang.String.ctor" | true
+        "java.*.ctor" | "java.lang.String.size" | false
+        "java.*.ctor" | "javax.lang.String.ctor" | false
+        "*.lang.*" | "java.lang.String.ctor" | true
+        "*.lang.*" | "java.util.List.ctor" | false
+        "*.*.*" | "java.lang.String.ctor" | true
+        "*.*.*" | "Foo.ctor" | false
     }
 
-    @Test void "use '?' wildcard"() {
-        def matcher
-
-        matcher = new CallMatcher("?")
-        assert matcher.match("A")
-        assert !matcher.match("")
-
-        matcher = new CallMatcher("??")
-        assert matcher.match("AA")
-        assert !matcher.match("A")
-
-        matcher = new CallMatcher("?.a")
-        assert matcher.match("A.a")
-        assert !matcher.match("AA.a")
-
-        matcher = new CallMatcher("A.?")
-        assert matcher.match("A.a")
-        assert !matcher.match("A.aa")
-
-        matcher = new CallMatcher("?.?")
-        assert matcher.match("A.a")
-        assert !matcher.match("A.aa")
+    def "pattern includes '?' wildcard(s)"() {
+        expect:
+        def matcher = new CallMatcher(pattern)
+        matcher.match(text) == accepted
+        
+        where:
+        pattern | text | accepted
+        "?" | "A" | true
+        "?" | "" | false
+        "??" | "AA" | true
+        "??" | "A" | false
+        "?.a" | "A.a" | true
+        "?.a" | "AA.a" | false
+        "A.?" | "A.a" | true
+        "A.?" | "A.aa" | false
+        "?.?" | "A.a" | true
+        "?.?" | "A.aa" | false
     }
 
 }

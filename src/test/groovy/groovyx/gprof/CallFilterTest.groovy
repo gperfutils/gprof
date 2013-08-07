@@ -15,30 +15,42 @@
  */
 package groovyx.gprof
 
-import org.junit.Test
+import spock.lang.Specification
 
-class CallFilterTest {
+class CallFilterTest extends Specification {
 
-    @Test void "accept all"() {
-        def filter = new MethodCallFilter()
-        assert filter.accept("abc")
-        assert filter.accept("acb")
+    def "accept all"() {
+        when:
+        def filter = new CallFilter()
+        
+        then:
+        filter.accept("abc")
     }
 
-    @Test void "pattern to include contains pattern to exclude"() {
-        def filter = new MethodCallFilter()
+    def "pattern to include contains pattern to exclude"() {
+        expect:
+        def filter = new CallFilter()
         filter.addInclude("a*")
         filter.addExclude("ab*")
-        assert filter.accept("acb")
-        assert !filter.accept("abc")
+        filter.accept(text) == accepted
+         
+        where:
+        text  | accepted
+        "acb" | true
+        "abc" | false
     }
 
-    @Test void "pattern to exclude contains pattern to include"() {
-        def filter = new MethodCallFilter()
+    def "pattern to exclude contains pattern to include"() {
+        expect:
+        def filter = new CallFilter()
         filter.addInclude("ab*")
         filter.addExclude("a*")
-        assert !filter.accept("acb")
-        assert !filter.accept("abc")
+        filter.accept(text) == accepted
+        
+        where:
+        text  | accepted
+        "acb" | false
+        "abc" | false 
     }
 
 }
