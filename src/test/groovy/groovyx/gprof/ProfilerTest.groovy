@@ -93,5 +93,43 @@ class ProfilerTest extends Specification {
         }
         assert b
     }
+    
+    def "error equals or less than 10 percent"() {
+        setup:
+        // warm up the profiled method
+        10000.each {
+            Thread.sleep(1)
+        }
+        def times = 100
+        
+        when:
+        def prof = new Profiler()
+        prof.start()
+        times.each {
+            Thread.sleep(1)
+        }
+        prof.stop()
+
+        then:
+        def actual =
+            flatten(prof.report.callTree)
+                .find { true }
+                .methodElements
+                .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
+                .selfTimePerCall 
+        def expected = (1..times).collect {
+            def s
+            s = System.nanoTime()
+            Thread.sleep(1)
+            def time = System.nanoTime() - s
+
+            s = System.nanoTime()
+            def nanoTimeOverhead = (System.nanoTime() - s)
+            time -= nanoTimeOverhead
+            
+            time
+        }.sum()/times
+        Math.abs(actual - expected) < expected * 0.1 // 10 %
+    }
 
 }

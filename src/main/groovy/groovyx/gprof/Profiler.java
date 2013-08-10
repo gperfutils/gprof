@@ -37,7 +37,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
 
-    private List<ProxyMetaClass> proxyMetaClasses = new ArrayList();
+    private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private List<MetaClass> originalMetaClasses = new ArrayList();
     private CallInterceptor interceptor;
@@ -64,16 +64,17 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     public void start() {
         start(Collections.<String, Object>emptyMap());
     }
-
+    
     public void start(Map<String, Object> options) {
+        MethodCallFilter methodFilter = new MethodCallFilter();
+        ThreadRunFilter threadFilter = new ThreadRunFilter();
         Map<String, Object> opts = new HashMap(defaultOptions);
         opts.putAll(options);
-        MethodCallFilter methodFilter = new MethodCallFilter();
         methodFilter.addIncludes((List) opts.get("includeMethods"));
         methodFilter.addExcludes((List) opts.get("excludeMethods"));
-        ThreadRunFilter threadFilter = new ThreadRunFilter();
         threadFilter.addIncludes((List) opts.get("includeThreads"));
         threadFilter.addExcludes((List) opts.get("excludeThreads"));
+        
         if (interceptor == null) {
             this.interceptor = new CallInterceptor(methodFilter, threadFilter);
         }
@@ -106,7 +107,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         registry.setMetaClassCreationHandle(originalMetaClassCreationHandle);
-        for (ProxyMetaClass metaClass : proxyMetaClasses) {
+        for (ProfileMetaClass metaClass : proxyMetaClasses) {
             // clean registry and delegate creating normal meta class for original handle
             registry.removeMetaClass(metaClass.getTheClass());
         }
@@ -125,10 +126,10 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     @Override
     protected MetaClass createNormalMetaClass(Class theClass, MetaClassRegistry registry) {
-        if (theClass != ProxyMetaClass.class) {
+        if (theClass != ProfileMetaClass.class) {
             try {
-                ProxyMetaClass proxyMetaClass =
-                        new ProxyMetaClass(registry, theClass, new MetaClassImpl(registry, theClass));
+                ProfileMetaClass proxyMetaClass =
+                        new ProfileMetaClass(registry, theClass, new MetaClassImpl(registry, theClass));
                 proxyMetaClass.setInterceptor(interceptor);
                 proxyMetaClasses.add(proxyMetaClass);
                 return proxyMetaClass;

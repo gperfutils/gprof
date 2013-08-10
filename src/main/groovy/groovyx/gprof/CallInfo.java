@@ -16,9 +16,17 @@
 package groovyx.gprof;
 
 public abstract class CallInfo {
-
+    private long overheadTime;
     private long time;
     private long childrenTime;
+
+    public long getOverheadTime() {
+        return overheadTime;
+    }
+
+    public void setOverheadTime(long overheadTime) {
+        this.overheadTime = overheadTime;
+    }
 
     public void setTime(long time) {
         this.time = time;
