@@ -42,13 +42,13 @@ class CallInterceptorTest extends Specification {
 
         Thread.start("thread-1") {
             def o = new ArrayList()
-            interceptor.beforeInvoke(o, "ctor", null)
-            interceptor.afterInvoke(o, "ctor", null, o)
+            interceptor.beforeInvoke(methodCall(o.class.name, "ctor", 0))
+            interceptor.afterInvoke(methodCall(o.class.name, "ctor", 0))
         }.join()
         Thread.start("thread-2") {
             def o = new LinkedList()
-            interceptor.beforeInvoke(o, "ctor", null)
-            interceptor.afterInvoke(o, "ctor", null, o)
+            interceptor.beforeInvoke(methodCall(o.class.name, "ctor", 0))
+            interceptor.afterInvoke(methodCall(o.class.name, "ctor", 0))
         }.join()
 
         def intercepted = interceptedMethods(interceptor)
@@ -70,17 +70,17 @@ class CallInterceptorTest extends Specification {
         def interceptor = new CallInterceptor(filter, new ThreadRunFilter())
 
         String s = new String("a")
-        interceptor.beforeInvoke(s, "ctor", null)
-        interceptor.afterInvoke(s, "ctor", null, null)
+        interceptor.beforeInvoke(methodCall(s.class.name, "ctor", 0))
+        interceptor.afterInvoke(methodCall(s.class.name, "ctor", 0))
         Integer i = new Integer(0)
-        interceptor.beforeInvoke(i, "ctor", null)
-        interceptor.afterInvoke(i, "ctor", null, null)
+        interceptor.beforeInvoke(methodCall(i.class.name, "ctor", 0))
+        interceptor.afterInvoke(methodCall(i.class.name, "ctor", 0))
         List l = new ArrayList();
-        interceptor.beforeInvoke(l, "ctor", null)
-        interceptor.afterInvoke(l, "ctor", null, null)
+        interceptor.beforeInvoke(methodCall(l.class.name, "ctor", 0))
+        interceptor.afterInvoke(methodCall(l.class.name, "ctor", 0))
         ArrayList arrayList = new ArrayList();
-        interceptor.beforeInvoke(arrayList, "ctor", null)
-        interceptor.afterInvoke(arrayList, "ctor", null, null)
+        interceptor.beforeInvoke(methodCall(arrayList.class.name, "ctor", 0))
+        interceptor.afterInvoke(methodCall(arrayList.class.name, "ctor", 0))
 
         def intercepted = interceptedMethods(interceptor)
         

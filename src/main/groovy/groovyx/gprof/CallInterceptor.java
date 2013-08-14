@@ -1,10 +1,25 @@
+/*
+ * Copyright 2013 Masato Nagai
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package groovyx.gprof;
 
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class CallInterceptor implements groovy.lang.Interceptor {
+public class CallInterceptor {
 
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
     private MethodCallFilter methodFilter;
@@ -15,7 +30,7 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         this.methodFilter = methodFilter;
         this.threadFilter = threadFilter;
     }
-
+    
     private LocalInterceptor getLocalInterceptor() {
         Thread thread = Thread.currentThread();
         LocalInterceptor theInterceptor = interceptors.get(thread);
@@ -29,27 +44,20 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         }
         return theInterceptor;
     }
-
-    @Override
-    public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-        return getLocalInterceptor().beforeInvoke(object, methodName, arguments);
+    
+    public void beforeInvoke(MethodCallInfo methodCall) {
+        getLocalInterceptor().beforeInvoke(methodCall);
     }
 
-    @Override
-    public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-        return getLocalInterceptor().afterInvoke(object, methodName, arguments, result);
-    }
-
-    @Override
-    public boolean doInvoke() {
-        return getLocalInterceptor().doInvoke();
+    public void afterInvoke(MethodCallInfo methodCall) {
+        getLocalInterceptor().afterInvoke(methodCall);
     }
 
     public CallTree getTree() {
         return makeTree();
     }
 
-    CallTree makeTree() {
+    private CallTree makeTree() {
         CallTree tree = new CallTree(Thread.currentThread());
         ThreadRunInfo mainThreadRun = (ThreadRunInfo) tree.getRoot().getData();
         for (LocalInterceptor interceptor : interceptors.values()) {
@@ -66,66 +74,35 @@ public class CallInterceptor implements groovy.lang.Interceptor {
         return tree;
     }
 
-    static class LocalInterceptor implements groovy.lang.Interceptor {
+    static class LocalInterceptor {
 
         private CallTree tree;
         private CallTree tmpTree;
         private Stack<CallTree.Node> nodeStack;
-        private Stack<Long> timeStack;
         private MethodCallFilter methodFilter;
-
+        
         private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null) {
-            @Override
-            public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-                return null;
-            }
-            @Override
-            public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-                return result;
-            }
+            public void beforeInvoke(MethodCallInfo methodCall) { }
+            public void afterInvoke(MethodCallInfo methodCall) { }
         };
 
         public LocalInterceptor(MethodCallFilter methodFilter) {
             tmpTree = new CallTree(Thread.currentThread());
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
-            timeStack = new Stack();
             this.methodFilter = methodFilter;
         }
 
-        private String classNameOf(Object object) {
-            String className;
-            if (object.getClass() == Class.class /* static methods */) {
-                className = ((Class) object).getName();
-            } else {
-                className = object.getClass().getName();
-            }
-            return className;
-        }
-
-        @Override
-        public Object beforeInvoke(Object object, String methodName, Object[] arguments) {
-            CallTree.Node node = new CallTree.Node(new MethodCallInfo(classNameOf(object), methodName));
+        public void beforeInvoke(MethodCallInfo methodCall) {
+            CallTree.Node node = new CallTree.Node(methodCall);
             CallTree.Node parentNode = nodeStack.peek();
             node.setParent(parentNode);
             parentNode.addChild(node);
-
             nodeStack.push(node);
-            timeStack.push(System.nanoTime());
-            return null;
         }
-
-        @Override
-        public Object afterInvoke(Object object, String methodName, Object[] arguments, Object result) {
-            long time = System.nanoTime() - timeStack.pop();
-            CallTree.Node node = nodeStack.pop();
-            node.getData().setTime(time);
-            return result;
-        }
-
-        @Override
-        public boolean doInvoke() {
-            return true;
+        
+        public void afterInvoke(MethodCallInfo methodCall) {
+            nodeStack.pop();
         }
 
         public CallTree getTree() {
@@ -134,20 +111,17 @@ public class CallInterceptor implements groovy.lang.Interceptor {
             }
             return tree;
         }
+        
+        private CallTree makeTree() {
+            CallTree tree = tmpTree;
+            sumUpOverheadTime(tree);
+            setChildrenTime(tree);
+            subtractOverheadTime(tree);
+            filterMethods(tree);
+            return tree;
+        }
 
-        CallTree makeTree() {
-            final CallTree tree = tmpTree;
-            tree.visit(new CallTree.NodeVisitor() {
-                @Override
-                public void visit(CallTree.Node node) {
-                    CallInfo call = node.getData();
-                    CallTree.Node parentNode = node.getParent();
-                    if (node != tree.getRoot()) {
-                        CallInfo parentCall = parentNode.getData();
-                        parentCall.setChildrenTime(parentCall.getChildrenTime() + call.getTime());
-                    }
-                }
-            });
+        private void filterMethods(CallTree tree) {
             tree.visit(new CallTree.NodeVisitor() {
                 @Override
                 public void visit(CallTree.Node node) { }
@@ -166,7 +140,53 @@ public class CallInterceptor implements groovy.lang.Interceptor {
                     }
                 }
             });
-            return tree;
+        }
+        
+        private void sumUpOverheadTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    if (node.hasChildren()) {
+                        for (CallTree.Node child : node.getChildren()) {
+                            CallInfo childCall = child.getData();
+                            call.setOverheadTime(call.getOverheadTime() + childCall.getOverheadTime());
+                            visit(child);
+                        }
+                    }
+                }
+            });
+        }
+        
+        private void subtractOverheadTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    if (node.hasParent()) {
+                        CallTree.Node parentNode = node.getParent();
+                        CallInfo parentCall = parentNode.getData();
+                        parentCall.setTime(parentCall.getTime() - call.getOverheadTime());
+                        parentCall.setChildrenTime(parentCall.getChildrenTime() - call.getOverheadTime());
+                    }
+                }
+            });
+        }
+
+        private void setChildrenTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    if (node.hasParent()) {
+                        CallInfo call = node.getData();
+                        CallInfo parentCall = node.getParent().getData();
+                        if (parentCall instanceof ThreadRunInfo) {
+                            parentCall.setTime(parentCall.getTime() + call.getTime());
+                        }
+                        parentCall.setChildrenTime(parentCall.getChildrenTime() + call.getTime());
+                    }
+                }
+            });
         }
 
     }

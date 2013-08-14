@@ -36,9 +36,9 @@ class FlatReportPrinterTest extends Specification {
 
         then:
         def expected = '''\
- %     cumulative   self            self     total    self     total    self     total       
-time    seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-100.0        0.10     0.10      1   100.00   100.00   100.00   100.00   100.00   100.00  A.a 
+ %     cumulative   self            self     total    self    total   self    total      
+time    seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+100.0        0.10     0.10      1   100.00   100.00  100.00  100.00  100.00  100.00  A.a 
 '''
         out == expected
     }
@@ -54,11 +54,11 @@ time    seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  
 
         then:
         def expected = '''\
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-43.7        0.17     0.17      1   175.00   175.00   175.00   175.00   175.00   175.00  A.c 
-31.2        0.30     0.12      1   125.00   125.00   125.00   125.00   125.00   125.00  A.b 
-25.0        0.40     0.10      1   100.00   400.00   100.00   400.00   100.00   400.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+43.7        0.17     0.17      1   175.00   175.00  175.00  175.00  175.00  175.00  A.c 
+31.2        0.30     0.12      1   125.00   125.00  125.00  125.00  125.00  125.00  A.b 
+25.0        0.40     0.10      1   100.00   400.00  100.00  400.00  100.00  400.00  A.a 
 '''
         out == expected
     }
@@ -79,11 +79,11 @@ time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  m
 
         then:
         def expected = '''\
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-43.7        0.52     0.52      3   175.00   175.00   165.00   165.00   185.00   185.00  A.c 
-31.2        0.90     0.37      3   125.00   125.00   115.00   115.00   135.00   135.00  A.b 
-25.0        1.20     0.30      3   100.00   400.00    90.00   370.00   110.00   430.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+43.7        0.52     0.52      3   175.00   175.00  165.00  165.00  185.00  185.00  A.c 
+31.2        0.90     0.37      3   125.00   125.00  115.00  115.00  135.00  135.00  A.b 
+25.0        1.20     0.30      3   100.00   400.00   90.00  370.00  110.00  430.00  A.a 
 '''
         out == expected
     }
@@ -101,10 +101,10 @@ time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  m
         
         then:
         def expected = '''\
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-55.5        0.37     0.37      3   125.00   125.00   115.00   115.00   135.00   135.00  A.b 
-44.4        0.67     0.30      1   300.00   675.00   300.00   675.00   300.00   675.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+55.5        0.37     0.37      3   125.00   125.00  115.00  115.00  135.00  135.00  A.b 
+44.4        0.67     0.30      1   300.00   675.00  300.00  675.00  300.00  675.00  A.a 
 '''
         out == expected
         
@@ -130,11 +130,11 @@ time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  m
 
         then:
         def expected = '''\
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-43.7        0.52     0.52      3   175.00   175.00   165.00   165.00   185.00   185.00  A.c 
-31.2        0.90     0.37      3   125.00   125.00   115.00   115.00   135.00   135.00  A.b 
-25.0        1.20     0.30      3   100.00   400.00    90.00   370.00   110.00   430.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+43.7        0.52     0.52      3   175.00   175.00  165.00  165.00  185.00  185.00  A.c 
+31.2        0.90     0.37      3   125.00   125.00  115.00  115.00  135.00  135.00  A.b 
+25.0        1.20     0.30      3   100.00   400.00   90.00  370.00  110.00  430.00  A.a 
 '''
         out == expected
     }
@@ -164,27 +164,27 @@ time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  m
         def expected = '''\
 #1 main
 
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-43.0        0.18     0.18      1   185.00   185.00   185.00   185.00   185.00   185.00  A.c 
-31.3        0.32     0.13      1   135.00   135.00   135.00   135.00   135.00   135.00  A.b 
-25.5        0.43     0.11      1   110.00   430.00   110.00   430.00   110.00   430.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+43.0        0.18     0.18      1   185.00   185.00  185.00  185.00  185.00  185.00  A.c 
+31.3        0.32     0.13      1   135.00   135.00  135.00  135.00  135.00  135.00  A.b 
+25.5        0.43     0.11      1   110.00   430.00  110.00  430.00  110.00  430.00  A.a 
 
 #2 Ta
 
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-43.7        0.17     0.17      1   175.00   175.00   175.00   175.00   175.00   175.00  A.c 
-31.2        0.30     0.12      1   125.00   125.00   125.00   125.00   125.00   125.00  A.b 
-25.0        0.40     0.10      1   100.00   400.00   100.00   400.00   100.00   400.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+43.7        0.17     0.17      1   175.00   175.00  175.00  175.00  175.00  175.00  A.c 
+31.2        0.30     0.12      1   125.00   125.00  125.00  125.00  125.00  125.00  A.b 
+25.0        0.40     0.10      1   100.00   400.00  100.00  400.00  100.00  400.00  A.a 
 
 #3 Tb
 
- %    cumulative   self            self     total    self     total    self     total       
-time   seconds    seconds  calls  ms/call  ms/call  ms(min)  ms(min)  ms(max)  ms(max)  name
-44.5        0.16     0.16      1   165.00   165.00   165.00   165.00   165.00   165.00  A.c 
-31.0        0.28     0.11      1   115.00   115.00   115.00   115.00   115.00   115.00  A.b 
-24.3        0.37     0.09      1    90.00   370.00    90.00   370.00    90.00   370.00  A.a 
+ %    cumulative   self            self     total    self    total   self    total      
+time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+44.5        0.16     0.16      1   165.00   165.00  165.00  165.00  165.00  165.00  A.c 
+31.0        0.28     0.11      1   115.00   115.00  115.00  115.00  115.00  115.00  A.b 
+24.3        0.37     0.09      1    90.00   370.00   90.00  370.00   90.00  370.00  A.a 
 '''
         out == expected
     }
