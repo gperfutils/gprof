@@ -191,20 +191,20 @@ public class FlatReportPrinter implements ReportPrinter<FlatReportThreadElement>
                 "ms/call",
                 "%%%ds"),
         SELF_MIN_TIME(
-                " self  ",
-                "ms(min)",
+                " self ",
+                "min ms",
                 "%%%ds"),
         TOTAL_MIN_TIME(
-                " total ",
-                "ms(min)",
+                " total",
+                "min ms",
                 "%%%ds"),
         SELF_MAX_TIME(
-                " self  ",
-                "ms(max)",
+                " self ",
+                "max ms",
                 "%%%ds"),
         TOTAL_MAX_TIME(
-                " total ",
-                "ms(max)",
+                " total",
+                "max ms",
                 "%%%ds"),
         NAME(
                 "    ",
