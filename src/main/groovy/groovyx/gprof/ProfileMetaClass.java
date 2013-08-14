@@ -46,25 +46,19 @@ public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass
         return System.nanoTime();
     }
     
-    private long measureOverhead() {
-        long s = time();
-        return time() - s;
-    }
-    
     private long elapsedTime(long from) {
         return time() - from;
     }
 
     public Object invokeMethod(final Object object, final String methodName, final Object[] arguments) {
         long interceptStartTime = time();
-        long measureOverheadTime = measureOverhead();
         MethodCallInfo methodCall = new MethodCallInfo(object.getClass().getName(), methodName);
         interceptor.beforeInvoke(methodCall);
         long executeStartTime = time();
         try {
             return adaptee.invokeMethod(object, methodName, arguments);
         } finally {
-            long executeTime = elapsedTime(executeStartTime) - measureOverheadTime;
+            long executeTime = elapsedTime(executeStartTime);
             methodCall.setTime(executeTime);
             interceptor.afterInvoke(methodCall);
             long interceptTime = elapsedTime(interceptStartTime);

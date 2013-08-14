@@ -1,3 +1,18 @@
+/*
+ * Copyright 2013 Masato Nagai
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package groovyx.gprof;
 
 import java.util.Stack;
@@ -9,20 +24,11 @@ public class CallInterceptor {
     private ConcurrentMap<Thread, LocalInterceptor> interceptors;
     private MethodCallFilter methodFilter;
     private ThreadRunFilter threadFilter;
-    private long interceptOverhead;
-    
-    public void setInterceptOverhead(long ns) {
-       this.interceptOverhead = ns;
-    }
 
     public CallInterceptor(MethodCallFilter methodFilter, ThreadRunFilter threadFilter) {
         interceptors = new ConcurrentHashMap<Thread, LocalInterceptor>();
         this.methodFilter = methodFilter;
         this.threadFilter = threadFilter;
-    }
-    
-    public void clear() {
-        interceptors.clear();
     }
     
     private LocalInterceptor getLocalInterceptor() {
@@ -34,7 +40,6 @@ public class CallInterceptor {
             } else {
                 theInterceptor = LocalInterceptor.DO_NOT_INTERCEPT;
             }
-            theInterceptor.setInterceptOverhead(interceptOverhead);
             interceptors.put(Thread.currentThread(), theInterceptor);
         }
         return theInterceptor;
@@ -52,7 +57,7 @@ public class CallInterceptor {
         return makeTree();
     }
 
-    CallTree makeTree() {
+    private CallTree makeTree() {
         CallTree tree = new CallTree(Thread.currentThread());
         ThreadRunInfo mainThreadRun = (ThreadRunInfo) tree.getRoot().getData();
         for (LocalInterceptor interceptor : interceptors.values()) {
@@ -75,7 +80,6 @@ public class CallInterceptor {
         private CallTree tmpTree;
         private Stack<CallTree.Node> nodeStack;
         private MethodCallFilter methodFilter;
-        private long interceptOverhead;
         
         private static LocalInterceptor DO_NOT_INTERCEPT = new LocalInterceptor(null) {
             public void beforeInvoke(MethodCallInfo methodCall) { }
@@ -87,10 +91,6 @@ public class CallInterceptor {
             nodeStack = new Stack();
             nodeStack.push(tmpTree.getRoot());
             this.methodFilter = methodFilter;
-        }
-
-        public void setInterceptOverhead(long ns) {
-            this.interceptOverhead = ns;
         }
 
         public void beforeInvoke(MethodCallInfo methodCall) {
@@ -112,34 +112,16 @@ public class CallInterceptor {
             return tree;
         }
         
-        private void setOverhead(CallTree.Node node) {
-            CallInfo call = node.getData();
-            for (CallTree.Node child : node.getChildren()) {
-                setOverhead(child);
-                call.setOverheadTime(call.getOverheadTime() + child.getData().getOverheadTime());
-            }
+        private CallTree makeTree() {
+            CallTree tree = tmpTree;
+            sumUpOverheadTime(tree);
+            setChildrenTime(tree);
+            subtractOverheadTime(tree);
+            filterMethods(tree);
+            return tree;
         }
-        
-        CallTree makeTree() {
-            final CallTree tree = tmpTree;
-            tree.visit(new CallTree.NodeVisitor() {
-                @Override
-                public void visit(CallTree.Node node) {
-                    setOverhead(node);
-                }
-            });
-            tree.visit(new CallTree.NodeVisitor() {
-                @Override
-                public void visit(CallTree.Node node) {
-                    CallInfo call = node.getData();
-                    CallTree.Node parentNode = node.getParent();
-                    if (node != tree.getRoot()) {
-                        CallInfo parentCall = parentNode.getData();
-                        parentCall.setChildrenTime(parentCall.getChildrenTime() + call.getTime());
-                        parentCall.setTime(parentCall.getTime() - call.getOverheadTime());
-                    }
-                }
-            });
+
+        private void filterMethods(CallTree tree) {
             tree.visit(new CallTree.NodeVisitor() {
                 @Override
                 public void visit(CallTree.Node node) { }
@@ -158,7 +140,53 @@ public class CallInterceptor {
                     }
                 }
             });
-            return tree;
+        }
+        
+        private void sumUpOverheadTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    if (node.hasChildren()) {
+                        for (CallTree.Node child : node.getChildren()) {
+                            CallInfo childCall = child.getData();
+                            call.setOverheadTime(call.getOverheadTime() + childCall.getOverheadTime());
+                            visit(child);
+                        }
+                    }
+                }
+            });
+        }
+        
+        private void subtractOverheadTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    CallInfo call = node.getData();
+                    if (node.hasParent()) {
+                        CallTree.Node parentNode = node.getParent();
+                        CallInfo parentCall = parentNode.getData();
+                        parentCall.setTime(parentCall.getTime() - call.getOverheadTime());
+                        parentCall.setChildrenTime(parentCall.getChildrenTime() - call.getOverheadTime());
+                    }
+                }
+            });
+        }
+
+        private void setChildrenTime(CallTree tree) {
+            tree.visit(new CallTree.NodeVisitor() {
+                @Override
+                public void visit(CallTree.Node node) {
+                    if (node.hasParent()) {
+                        CallInfo call = node.getData();
+                        CallInfo parentCall = node.getParent().getData();
+                        if (parentCall instanceof ThreadRunInfo) {
+                            parentCall.setTime(parentCall.getTime() + call.getTime());
+                        }
+                        parentCall.setChildrenTime(parentCall.getChildrenTime() + call.getTime());
+                    }
+                }
+            });
         }
 
     }

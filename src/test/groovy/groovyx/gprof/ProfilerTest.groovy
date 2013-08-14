@@ -118,15 +118,9 @@ class ProfilerTest extends Specification {
                 .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
                 .selfTimePerCall 
         def expected = (1..times).collect {
-            def s
-            s = System.nanoTime()
+            def s = System.nanoTime()
             Thread.sleep(1)
             def time = System.nanoTime() - s
-
-            s = System.nanoTime()
-            def nanoTimeOverhead = (System.nanoTime() - s)
-            time -= nanoTimeOverhead
-            
             time
         }.sum()/times
         Math.abs(actual - expected) < expected * 0.1 // 10 %
