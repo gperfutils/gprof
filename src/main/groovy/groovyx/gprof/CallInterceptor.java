@@ -115,8 +115,8 @@ public class CallInterceptor {
         private CallTree makeTree() {
             CallTree tree = tmpTree;
             sumUpOverheadTime(tree);
-            setChildrenTime(tree);
             subtractOverheadTime(tree);
+            setChildrenTime(tree);
             filterMethods(tree);
             return tree;
         }
@@ -146,13 +146,13 @@ public class CallInterceptor {
             tree.visit(new CallTree.NodeVisitor() {
                 @Override
                 public void visit(CallTree.Node node) {
-                    CallInfo call = node.getData();
-                    if (node.hasChildren()) {
-                        for (CallTree.Node child : node.getChildren()) {
-                            CallInfo childCall = child.getData();
-                            call.setOverheadTime(call.getOverheadTime() + childCall.getOverheadTime());
-                            visit(child);
-                        }
+                }
+                @Override
+                public void exit(CallTree.Node node) {
+                    if (node.hasParent()) {
+                        CallInfo call = node.getData();
+                        CallInfo parentCall = node.getParent().getData();
+                        parentCall.setOverheadTime(parentCall.getOverheadTime() + call.getOverheadTime());
                     }
                 }
             });
@@ -164,10 +164,8 @@ public class CallInterceptor {
                 public void visit(CallTree.Node node) {
                     CallInfo call = node.getData();
                     if (node.hasParent()) {
-                        CallTree.Node parentNode = node.getParent();
-                        CallInfo parentCall = parentNode.getData();
+                        CallInfo parentCall = node.getParent().getData();
                         parentCall.setTime(parentCall.getTime() - call.getOverheadTime());
-                        parentCall.setChildrenTime(parentCall.getChildrenTime() - call.getOverheadTime());
                     }
                 }
             });

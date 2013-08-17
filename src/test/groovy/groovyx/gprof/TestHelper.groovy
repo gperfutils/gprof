@@ -59,14 +59,19 @@ class TestHelper {
         new MethodInfo(className, methodName)
     }
 
-    def methodCall(className, methodName, long ms) {
+    def methodCall(className, methodName, long timeMs, long overheadMs = 0) {
         def call = new MethodCallInfo(method(className, methodName))
-        call.time = time(ms)
+        call.time = time(timeMs)
+        call.overheadTime = time(overheadMs)
         call
     }
 
     def methodCallNode(className, methodName, long time, Object... children) {
         node(methodCall(className, methodName, time), children)
+    }
+    
+    long nano2Milli(long milli) {
+        (milli/1000/1000) as long
     }
 
 }

@@ -94,5 +94,34 @@ class CallInterceptorTest extends Specification {
         
         intercepted.containsAll(includes) && !(intercepted.find { excludes.contains(it) })
     }
+    
+    def "subtracts overheads"() {
+        setup:
+            def interceptor = new CallInterceptor(new MethodCallFilter(), new ThreadRunFilter())
+            def calls = [
+                methodCall("A", "a", 140, 20),
+                methodCall("A", "b", 100, 20),
+                methodCall("A", "c", 60, 20),
+                methodCall("A", "d", 20, 20) ]
+            calls.each {
+                interceptor.beforeInvoke(it)
+            } 
+            calls.reverse().each {
+                interceptor.afterInvoke(it)
+            }
+            def flatten = new groovyx.gprof.flat.FlatReportNormalizer().normalize(interceptor.tree)
+            def flattenElem = flatten.find { true }.methodElements
+        
+        expect:
+            def r = flattenElem.find { it.method.name == name }
+            nano2Milli(r.time) == totalTime && nano2Milli(r.selfTime) == selfTime
+            
+        where:
+            name | totalTime | selfTime
+            "A.a"|        80 |       20
+            "A.b"|        60 |       20
+            "A.c"|        40 |       20
+            "A.d"|        20 |       20
+    }
 
 }
