@@ -144,7 +144,6 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
                 originalMetaClasses.put(theClass, originalMetaClass);
                 ExpandoMetaClass originalExpando = classInfo.getModifiedExpando();
                 originalExpandos.put(theClass, originalExpando);
-                registry.removeMetaClass(theClass);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -154,9 +153,9 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         // note!! this guy clears the expandos.
         registry.setMetaClassCreationHandle(this);
         
-        // creates meta classes from the original meta classes
+        // creates and sets meta classes from the original meta classes
         for (Class theClass : originalMetaClasses.keySet()) {
-            this.createNormalMetaClass(theClass, registry);    
+            registry.setMetaClass(theClass, this.createNormalMetaClass(theClass, registry));
         }
     }
 

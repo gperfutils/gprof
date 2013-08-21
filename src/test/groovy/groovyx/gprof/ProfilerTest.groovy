@@ -127,16 +127,18 @@ class ProfilerTest extends Specification {
         Math.abs(actual - expected) < expected * 0.1 // 10 %
     }
     
-    def "takes modified expandos from the original meta class"() {
+    def "takes modified expandos from the original meta class and intercepts it"() {
         when:
             String.metaClass.static.abc = { "ABC" }
-            def b = false
-            profile {
-                b = String.metaClass.methods.find { it.name == "abc" } != null
+            def report = profile {
+                String.abc()
             }
         
         then:
-            b
+            flatten(report.callTree)
+                .find { true }
+                .methodElements
+                .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
     }
     
     def "pass modified expandos to the original meta class"() {
