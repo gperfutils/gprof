@@ -1,6 +1,7 @@
 package groovyx.gprof
 
 import groovyx.gprof.flat.FlatReportNormalizer
+import org.codehaus.groovy.reflection.ClassInfo
 import spock.lang.Specification
 
 @Mixin(TestHelper)
@@ -124,6 +125,30 @@ class ProfilerTest extends Specification {
             time
         }.sum()/times
         Math.abs(actual - expected) < expected * 0.1 // 10 %
+    }
+    
+    def "takes modified expandos from the original meta class"() {
+        when:
+            String.metaClass.static.abc = { "ABC" }
+            def b = false
+            profile {
+                b = String.metaClass.methods.find { it.name == "abc" } != null
+            }
+        
+        then:
+            b
+    }
+    
+    def "pass modified expandos to the original meta class"() {
+        when:
+            profile {
+                String.metaClass.static.abc = { "ABC" }
+            }
+            def b = String.metaClass.methods.find { it.name == "abc" } != null
+        
+        then:
+            b
+        
     }
 
 }
