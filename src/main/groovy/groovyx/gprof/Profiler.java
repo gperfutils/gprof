@@ -23,6 +23,27 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+/**
+ * <p>
+ * The profiler. This class provides the following profiling patterns.
+ * </p>
+ * run() with a callable object:
+ * <pre>
+ * def prof = new Profiler()
+ * prof.run {
+ *     // code
+ * }.prettyPrint()    
+ * </pre>
+ * start() and stop():
+ * <pre>
+ * prof.start()    
+ * // code
+ * prof.stop()
+ * prof.report.prettyPrint()
+ * </pre>
+ * 
+ * @author Masato Nagai
+ */
 public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private static Map defaultOptions;
@@ -44,6 +65,19 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         return run(Collections.<String, Object>emptyMap(), profiled);
     }
 
+    /**
+     * Runs the specified closure and profiles it.
+     * @param options
+     *      <ul>
+     *      <li>includeMethods a method name to be included.</li>
+     *      <li>excludeMethods a method name to be excluded.</li>
+     *      <li>includeThreads a thread name to be included.</li>
+     *      <li>excludeThreads a thread name to be excluded.</li>
+     *      </ul>
+     * @param profiled
+     *      a callable object to be run and profiled.
+     * @return the report
+     */
     public Report run(Map<String, Object> options, Callable profiled) {
         try {
             start(options);
@@ -59,10 +93,23 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
     }
 
+    /**
+     * Starts profiling.
+     */
     public void start() {
         start(Collections.<String, Object>emptyMap());
     }
-    
+
+    /**
+     * Starts profiling with the specified options.
+     * @param options
+     *      <ul>
+     *      <li>includeMethods a method name to be included.</li>
+     *      <li>excludeMethods a method name to be excluded.</li>
+     *      <li>includeThreads a thread name to be included.</li>
+     *      <li>excludeThreads a thread name to be excluded.</li>
+     *      </ul>
+     */
     public void start(Map<String, Object> options) {
         MethodCallFilter methodFilter = new MethodCallFilter();
         ThreadRunFilter threadFilter = new ThreadRunFilter();
@@ -113,6 +160,9 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
     }
 
+    /**
+     * Stops profiling.
+     */
     public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         
@@ -139,10 +189,17 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
     }
 
+    /**
+     * Resets profiling.
+     */
     public void reset() {
         interceptor = null;
     }
 
+    /**
+     * Returns the report.
+     * @return the report
+     */
     public Report getReport() {
         return new ProxyReport(interceptor.getTree());
     }
