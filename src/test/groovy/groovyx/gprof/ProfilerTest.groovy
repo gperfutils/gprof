@@ -11,44 +11,35 @@ class ProfilerTest extends Specification {
         return new FlatReportNormalizer().normalize(callTree)
     }
     
-    def "Reports time is zero when profiling is stopped before the method call has not been finished"() {
+    def "run with closure"() {
+        when:
+        def report = profile {
+            Thread.sleep(1)
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method == method(Thread.class.name, "sleep") }
+    }
+    
+    def "start and stop"() {
         when:
         def p = new Profiler()
         p.start()
-        Thread.start {
-            Thread.sleep(300)
-        }
+        Thread.sleep(1)
         p.stop()
-
+        
         then:
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method == method("java.lang.Thread", "sleep") }
-            .time == 0
+            .find { e -> e.method == method(Thread.class.name, "sleep") }
     }
 
-    def "Start and stop profiling"() {
-        def p = new Profiler()
-        p.start()
-        Thread.sleep(1)
-        p.stop()
-        boolean b = false
-        flatten(p.report.callTree)
-            .find { true }
-            .methodElements
-            .find { e ->
-            if (e.method == method(Thread.class.name, "sleep") &&
-                e.calls == 1) {
-                b = true
-                return false
-            }
-            return true
-        }
-        assert b
-    }
-
-    def "Restart profiling"() {
+    def "reuse data when restarted"() {
+        when:
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
@@ -56,22 +47,17 @@ class ProfilerTest extends Specification {
         p.start()
         Thread.sleep(1)
         p.stop()
-        boolean b = false
+        
+        then:
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e ->
-            if (e.method == method(Thread.class.name, "sleep") &&
-                e.calls == 2) {
-                b = true
-                return false
-            }
-            return true
-        }
-        assert b
+            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .calls == 2
     }
 
-    def "Reset profiling"() {
+    def "clears data when reset"() {
+        when:
         def p = new Profiler()
         p.start()
         Thread.sleep(1)
@@ -80,77 +66,127 @@ class ProfilerTest extends Specification {
         p.start()
         Thread.sleep(1)
         p.stop()
-        boolean b = false
+        
+        then:
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e ->
-            if (e.method == method(Thread.class.name, "sleep") &&
-                e.calls == 1) {
-                b = true
-                return false
-            }
-            return true
-        }
-        assert b
+            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .calls == 1
     }
     
-    def "error equals or less than 10 percent"() {
-        setup:
-        // warm up the profiled method
-        10000.each {
-            Thread.sleep(1)
-        }
-        def times = 100
-        
+    def "keeps an expando static method which is added before profiling"() {
         when:
-        def prof = new Profiler()
-        prof.start()
-        times.each {
-            Thread.sleep(1)
-        }
-        prof.stop()
+        String.metaClass.static.abc = { "ABC" }
 
         then:
-        def actual =
-            flatten(prof.report.callTree)
-                .find { true }
-                .methodElements
-                .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
-                .selfTimePerCall 
-        def expected = (1..times).collect {
-            def s = System.nanoTime()
-            Thread.sleep(1)
-            def time = System.nanoTime() - s
-            time
-        }.sum()/times
-        Math.abs(actual - expected) < expected * 0.1 // 10 %
+        def r
+        profile {
+            r = String.abc() == "ABC"
+        }
+        r
     }
     
-    def "takes modified expandos from the original meta class and intercepts it"() {
+    def "keeps an expando instance method which is added before profiling"() {
         when:
-            String.metaClass.static.abc = { "ABC" }
-            def report = profile {
-                String.abc()
-            }
+        String.metaClass.abc = { "ABC" }
         
+        then:
+        def r
+        profile {
+            r = "".abc() == "ABC"
+        }
+        r
+    }
+    
+    def "keeps an expando property which is added before profiling"() {
+        when:
+        String.metaClass.abc = "ABC"
+
+        then:
+        def r
+        profile {
+            r = "".abc == "ABC"
+        }
+        r
+    }
+    
+    def "profiles an expando instance method which is added while profiling"() {
+        when:
+            def report = profile {
+                String.metaClass.abc = { "ABC" }
+                def s = "123"
+                s.abc()
+            }
+
         then:
             flatten(report.callTree)
                 .find { true }
                 .methodElements
                 .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
+        
     }
     
-    def "pass modified expandos to the original meta class"() {
+    def "profiles an expando static method which is added while profiling"() {
         when:
-            profile {
-                String.metaClass.static.abc = { "ABC" }
+        def report = profile {
+            String.metaClass.static.abc = { "ABC" }
+            String.abc()
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
+
+    }
+    
+    def "profiles current call site"() {
+        when:
+        def report = profile {
+            Math.metaClass.static.fib = { nth ->
+                if (nth < 2) nth
+                else call(nth - 1) + call(nth - 2)
             }
-            def b = String.metaClass.methods.find { it.name == "abc" } != null
+            Math.fib(2)
+        }
         
         then:
-            b
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.methodName == "call" }
+            .calls == 2
+    }
+    
+    def "remains an expando static method which is added while profiling"() {
+        when:
+        profile {
+            String.metaClass.static.abc = { "ABC" }
+        }
+
+        then:
+        String.abc() == "ABC"
+    }
+    
+    def "remains an expando instance method which is added while profiling"() {
+        when:
+        profile {
+            String.metaClass.abc = { "ABC" }
+        }
         
+        then:
+        "".abc() == "ABC"
     }
 
+    def "remains an expando property which is added while profiling"() {
+        when:
+        profile {
+            String.metaClass.abc = "ABC"
+        }
+
+        then:
+        "".abc == "ABC"
+    }
 }

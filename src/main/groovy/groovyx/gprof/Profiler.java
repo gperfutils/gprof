@@ -50,15 +50,13 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     static {
         defaultOptions = new HashMap();
         defaultOptions.put("includeMethods", Collections.emptyList());
-        defaultOptions.put("excludeMethods", Arrays.asList("groovyx.gprof.*"));
+        defaultOptions.put("excludeMethods", Collections.emptyList());
         defaultOptions.put("includeThreads", Collections.emptyList());
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
 
     private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
-    private Map<Class, MetaClass> originalMetaClasses = new HashMap();
-    private Map<Class, ExpandoMetaClass> originalExpandos = new HashMap();
     private CallInterceptor interceptor;
 
     public Report run(Callable profiled) {
@@ -134,6 +132,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
         */
         // This is a hack.
+        Map<Class, MetaClass> originalMetaClasses = new HashMap();
         try {
             Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
             classSetField.setAccessible(true);
@@ -142,20 +141,20 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
                 Class theClass = classInfo.get();
                 MetaClass originalMetaClass = registry.getMetaClass(theClass);
                 originalMetaClasses.put(theClass, originalMetaClass);
-                ExpandoMetaClass originalExpando = classInfo.getModifiedExpando();
-                originalExpandos.put(theClass, originalExpando);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
-        // note!! this guy clears the expandos.
         registry.setMetaClassCreationHandle(this);
         
         // creates and sets meta classes from the original meta classes
-        for (Class theClass : originalMetaClasses.keySet()) {
-            registry.setMetaClass(theClass, this.createNormalMetaClass(theClass, registry));
+        for (Map.Entry<Class, MetaClass> e : originalMetaClasses.entrySet()) {
+            Class theClass = e.getKey();
+            MetaClass metaClass = e.getValue();
+            MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
+            registry.setMetaClass(theClass, proxyMetaClass); 
         }
     }
 
@@ -164,27 +163,12 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
      */
     public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
-        
-        // take the modified expandos
-        Map<Class, ExpandoMetaClass> expandoMap = new HashMap();
-        for (ProfileMetaClass metaClass : proxyMetaClasses) {
-            Class theClass = metaClass.getTheClass();
-            ClassInfo classInfo = metaClass.getClassInfo();
-            expandoMap.put(theClass, classInfo.getModifiedExpando());
-        }
-        
-        // note!! this guy clears the expandos.
         registry.setMetaClassCreationHandle(originalMetaClassCreationHandle);
 
-        for (ProfileMetaClass metaClass : proxyMetaClasses) {
-            Class theClass = metaClass.getTheClass();
-            MetaClass pureMetaClass = metaClass.getAdaptee();
+        for (ProfileMetaClass proxyMetaClass : proxyMetaClasses) {
+            Class theClass = proxyMetaClass.getTheClass();
+            MetaClass pureMetaClass = proxyMetaClass.getAdaptee();
             registry.setMetaClass(theClass, pureMetaClass);
-            ExpandoMetaClass expando = expandoMap.get(theClass);
-            if (expando != null) {
-                ClassInfo classInfo = ClassInfo.getClassInfo(theClass);
-                classInfo.setStrongMetaClass(expando);
-            }
         }
     }
 
@@ -202,31 +186,25 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     public Report getReport() {
         return new ProxyReport(interceptor.getTree());
     }
+    
+    private MetaClass proxyMetaClass(
+            MetaClassRegistry registry, Class theClass, MetaClass metaClass) {
+        if (MetaClass.class.isAssignableFrom(theClass)) {
+            return metaClass;
+        }
+        ProfileMetaClass proxyMetaClass = new ProfileMetaClass(registry, theClass, metaClass);
+        proxyMetaClass.setInterceptor(interceptor);
+        proxyMetaClasses.add(proxyMetaClass);
+        return proxyMetaClass;
+    }
 
     @Override
     protected MetaClass createNormalMetaClass(Class theClass, MetaClassRegistry registry) {
-        if (theClass != ProfileMetaClass.class) {
-            try {
-                ExpandoMetaClass expando = originalExpandos.get(theClass);
-                if (expando != null) {
-                    ClassInfo classInfo = ClassInfo.getClassInfo(theClass);
-                    classInfo.setStrongMetaClass(expando);
-                }
-                MetaClass adaptee = originalMetaClasses.get(theClass);
-                if (adaptee == null) {
-                    adaptee = new MetaClassImpl(registry, theClass);    
-                }
-                ProfileMetaClass proxyMetaClass =
-                        new ProfileMetaClass(registry, theClass, adaptee); 
-                proxyMetaClass.setInterceptor(interceptor);
-                proxyMetaClasses.add(proxyMetaClass);
-                
-                return proxyMetaClass;
-            } catch (IntrospectionException e) {
-                e.printStackTrace();
-            }
+        if (theClass == ProfileMetaClass.class) {
+            return super.createNormalMetaClass(theClass, registry);
         }
-        return super.createNormalMetaClass(theClass, registry);
+        MetaClass metaClass = new MetaClassImpl(registry, theClass);
+        return proxyMetaClass(registry, theClass, metaClass);
     }
 
 }

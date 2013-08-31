@@ -17,25 +17,20 @@ package groovyx.gprof;
 
 import groovy.lang.*;
 
-import java.beans.IntrospectionException;
-
-public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass {
-
-    protected MetaClass adaptee = null;
+/**
+ * This class profiles when the method of the class is invoked.
+ */
+public class ProfileMetaClass
+    // org.codehaus.groovy.runtime.HandleMetaClass replaces the meta class with a new object of ExpandoMetaClass
+    // when a program tries to modify the meta class and the meta class is not an object of ExpandoMetaClass
+    // So this class need to extend ExpandoMetaClass.
+    extends AdaptingExpandoMetaClass {
+    
     protected CallInterceptor interceptor = null;
 
-    public ProfileMetaClass(MetaClassRegistry registry, Class theClass, MetaClass adaptee) throws IntrospectionException {
-        super(registry, theClass);
-        this.adaptee = adaptee;
+    public ProfileMetaClass(MetaClassRegistry registry, Class theClass, MetaClass metaClass) {
+        super(metaClass, registry, theClass);
         super.initialize();
-    }
-
-    public synchronized void initialize() {
-        this.adaptee.initialize();
-    }
-
-    public CallInterceptor getInterceptor() {
-        return interceptor;
     }
 
     public void setInterceptor(CallInterceptor interceptor) {
@@ -56,7 +51,7 @@ public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass
         interceptor.beforeInvoke(methodCall);
         long executeStartTime = time();
         try {
-            return adaptee.invokeMethod(object, methodName, arguments);
+            return super.invokeMethod(object, methodName, arguments);
         } finally {
             long executeTime = elapsedTime(executeStartTime);
             methodCall.setTime(executeTime);
@@ -72,7 +67,7 @@ public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass
         interceptor.beforeInvoke(methodCall);
         long executeStartTime = time();
         try {
-            return adaptee.invokeStaticMethod(object, methodName, arguments);
+            return super.invokeStaticMethod(object, methodName, arguments);
         } finally {
             long executeTime = elapsedTime(executeStartTime);
             methodCall.setTime(executeTime);
@@ -88,7 +83,7 @@ public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass
         interceptor.beforeInvoke(methodCall);
         long executeStartTime = time();
         try {
-            return adaptee.invokeConstructor(arguments);
+            return super.invokeConstructor(arguments);
         } finally {
             long executeTime = elapsedTime(executeStartTime);
             methodCall.setTime(executeTime);
@@ -96,14 +91,6 @@ public class ProfileMetaClass extends MetaClassImpl implements AdaptingMetaClass
             long interceptTime = elapsedTime(interceptStartTime);
             methodCall.setOverheadTime(interceptTime - executeTime);
         }
-    }
-
-    public MetaClass getAdaptee() {
-        return this.adaptee;
-    }
-
-    public void setAdaptee(MetaClass metaClass) {
-        this.adaptee = metaClass;
     }
 
 }
