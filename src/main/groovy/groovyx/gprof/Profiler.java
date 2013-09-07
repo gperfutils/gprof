@@ -17,11 +17,12 @@ package groovyx.gprof;
 
 import groovy.lang.*;
 import org.codehaus.groovy.reflection.ClassInfo;
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
+import org.codehaus.groovy.runtime.MetaClassHelper;
 
 import java.beans.IntrospectionException;
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.concurrent.Callable;
 
 /**
  * <p>
@@ -59,7 +60,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private CallInterceptor interceptor;
 
-    public Report run(Callable profiled) {
+    public Report run(Closure profiled) {
         return run(Collections.<String, Object>emptyMap(), profiled);
     }
 
@@ -76,9 +77,24 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
      *      a callable object to be run and profiled.
      * @return the report
      */
-    public Report run(Map<String, Object> options, Callable profiled) {
+    public Report run(Map<String, Object> options, Closure profiled) {
         try {
-            start(options);
+            List refs = new ArrayList();
+            try {
+                for (Field field : profiled.getClass().getDeclaredFields()) {
+                    if (field.getType().equals(Reference.class)) {
+                        field.setAccessible(true);
+                        Reference ref = (Reference) field.get(profiled);
+                        refs.add(ref);
+                    }
+                }
+            } catch(Exception e) {}
+            refs.add(new Reference(profiled));
+            refs.add(new Reference(profiled.getDelegate()));
+            Map<String, Object> _options = new HashMap(options);
+            _options.put("references", refs);
+            options = null;
+            start(_options);
             try {
                 profiled.call();
             } catch (Exception e) {
@@ -123,16 +139,13 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         }
 
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
-        
-        /*
+
+        Map<Class, MetaClass> originalMetaClasses = new HashMap();
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
             originalMetaClasses.put(theClass, registry.getMetaClass(theClass));
-            registry.removeMetaClass(theClass);
         }
-        */
-        // This is a hack.
-        Map<Class, MetaClass> originalMetaClasses = new HashMap();
+        /*
         try {
             Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
             classSetField.setAccessible(true);
@@ -145,6 +158,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        */
 
         originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
         registry.setMetaClassCreationHandle(this);
@@ -156,6 +170,27 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
             MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
             registry.setMetaClass(theClass, proxyMetaClass); 
         }
+
+        List<Reference> refs = (List) opts.get("references");
+        if (refs != null) {
+            for (Reference ref : refs) {
+                Object obj = ref.get();
+                if (obj != null) {
+                    Class theClass = obj.getClass();
+                    if (obj instanceof GroovyObject) {
+                        GroovyObject gobj = (GroovyObject) obj;
+                        MetaClass metaClass = gobj.getMetaClass();
+                        MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
+                        DefaultGroovyMethods.setMetaClass(gobj, proxyMetaClass);
+                    } else {
+                        MetaClass metaClass = DefaultGroovyMethods.getMetaClass(obj);
+                        MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
+                        MetaClassHelper.doSetMetaClass(obj, proxyMetaClass);
+                    }
+                }
+            }
+        }
+
     }
 
     /**

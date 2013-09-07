@@ -94,7 +94,7 @@ class ProfilerTest extends Specification {
         then:
         def r
         profile {
-            r = "".abc() == "ABC"
+            r = new String().abc() == "ABC"
         }
         r
     }
@@ -106,27 +106,92 @@ class ProfilerTest extends Specification {
         then:
         def r
         profile {
-            r = "".abc == "ABC"
+            r = new String().abc == "ABC"
         }
         r
     }
     
-    def "profiles an expando instance method which is added while profiling"() {
+    def "profiles an expando method whith is added to a variable before profiling"() {
         when:
-            def report = profile {
-                String.metaClass.abc = { "ABC" }
-                def s = "123"
-                s.abc()
-            }
+        def s = new String()
+        s.metaClass.abc = { "ABC" }
+        def report = profile {
+            s.abc()
+        }
 
         then:
-            flatten(report.callTree)
-                .find { true }
-                .methodElements
-                .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
-        
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
     }
     
+    def "profiles an expando instance method which is added to the caller before profiling"() {
+        when:
+        this.metaClass.abc = { "ABC" }
+        def report = profile {
+            abc()
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.methodName == "abc" }
+    }
+    
+    def "profiles 'call' in expando method which is added to the caller before profiling"() {
+        when:
+        def clos = { nth ->
+            if (nth < 2) nth
+            else call(nth - 1) + call(nth - 2) }
+        this.metaClass.fib = clos
+        def report = profile {
+            fib(3)
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { it.method == method(clos.class.name, "call") }
+            .calls == 2
+    }
+    
+    def "profiles 'call' in expando static method which is added to the caller before profiling"() {
+        when:
+        def clos = { nth ->
+            if (nth < 2) nth
+            else call(nth - 1) + call(nth - 2) }
+        this.metaClass.static.fib = clos
+        def report = profile {
+            fib(3)
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { it.method == method(clos.class.name, "call") }
+            .calls == 2
+    }
+    
+    def "profiles an expando instance method which is added while profiling"() {
+        when:
+        def report = profile {
+            String.metaClass.abc = { "ABC" }
+            def s = "123"
+            s.abc()
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
+
+    }
+
     def "profiles an expando static method which is added while profiling"() {
         when:
         def report = profile {
@@ -142,7 +207,26 @@ class ProfilerTest extends Specification {
 
     }
     
-    def "profiles current call site"() {
+    def "profiles 'call' in expando instance method which is added while profiling"() {
+        when:
+        def report = profile {
+            def obj = new String()
+            obj.metaClass.fib = { nth ->
+                if (nth < 2) nth
+                else call(nth - 1) + call(nth - 2)
+            }
+            obj.fib(2)
+        }
+
+        then:
+        flatten(report.callTree)
+            .find { true }
+            .methodElements
+            .find { e -> e.method.methodName == "call" }
+            .calls == 2
+    }
+
+    def "profiles 'call' in expando static method which is added while profiling"() {
         when:
         def report = profile {
             Math.metaClass.static.fib = { nth ->
@@ -177,7 +261,7 @@ class ProfilerTest extends Specification {
         }
         
         then:
-        "".abc() == "ABC"
+        new String().abc() == "ABC"
     }
 
     def "remains an expando property which is added while profiling"() {
@@ -187,6 +271,6 @@ class ProfilerTest extends Specification {
         }
 
         then:
-        "".abc == "ABC"
+        new String().abc == "ABC"
     }
 }

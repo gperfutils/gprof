@@ -23,8 +23,9 @@ import groovy.lang.*;
 public class ProfileMetaClass
     // org.codehaus.groovy.runtime.HandleMetaClass replaces the meta class with a new object of ExpandoMetaClass
     // when a program tries to modify the meta class and the meta class is not an object of ExpandoMetaClass
-    // So this class need to extend ExpandoMetaClass.
+    // So this class need to extend ExpandoMetaClass and cannot extend ProxyMetaClass.
     extends AdaptingExpandoMetaClass {
+    // extends ProxyMetaClass {
     
     protected CallInterceptor interceptor = null;
 
@@ -43,6 +44,22 @@ public class ProfileMetaClass
     
     private long elapsedTime(long from) {
         return time() - from;
+    }
+
+    @Override
+    public MetaMethod pickMethod(String methodName, Class[] arguments) {
+        MetaMethod metaMethod = super.pickMethod(methodName, arguments);
+        if (metaMethod instanceof ClosureInvokingMethod) {
+            // replace the meta class of the closure to intercept method calls in it.
+            Closure closure = ((ClosureInvokingMethod) metaMethod).getClosure();
+            if (!(closure.getMetaClass() instanceof ProfileMetaClass)) {
+                ProfileMetaClass proxyMetaClass = 
+                        new ProfileMetaClass(this.getRegistry(), closure.getClass(), closure.getMetaClass());
+                proxyMetaClass.setInterceptor(interceptor);
+                closure.setMetaClass(proxyMetaClass);
+            }
+        }
+        return metaMethod;
     }
 
     public Object invokeMethod(final Object object, final String methodName, final Object[] arguments) {
