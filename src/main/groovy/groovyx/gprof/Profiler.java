@@ -20,7 +20,6 @@ import org.codehaus.groovy.reflection.ClassInfo;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.MetaClassHelper;
 
-import java.beans.IntrospectionException;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -56,7 +55,6 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
 
-    private List<ProfileMetaClass> proxyMetaClasses = new ArrayList();
     private MetaClassRegistry.MetaClassCreationHandle originalMetaClassCreationHandle;
     private CallInterceptor interceptor;
 
@@ -138,59 +136,77 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
             this.interceptor = new CallInterceptor(methodFilter, threadFilter);
         }
 
-        MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+        proxyMetaClasses();
+        List<Reference> refs = (List) opts.get("references");
+        if (refs != null) {
+            proxyPerInstanceMetaClasses(refs);
+        }
+    }
 
+    private void proxyPerInstanceMetaClasses(List<Reference> refs) {
+        for (Reference ref : refs) {
+            Object obj = ref.get();
+            if (obj != null) {
+                Class theClass = obj.getClass();
+                if (obj instanceof GroovyObject) {
+                    GroovyObject gobj = (GroovyObject) obj;
+                    MetaClass metaClass = gobj.getMetaClass();
+                    MetaClass proxyMetaClass = proxyMetaClass(theClass, metaClass);
+                    DefaultGroovyMethods.setMetaClass(gobj, proxyMetaClass);
+                } else {
+                    MetaClass metaClass = DefaultGroovyMethods.getMetaClass(obj);
+                    MetaClass proxyMetaClass = proxyMetaClass(theClass, metaClass);
+                    MetaClassHelper.doSetMetaClass(obj, proxyMetaClass);
+                }
+            }
+        }
+    }
+
+    private void proxyMetaClasses() {
+        Set<Class> allClasses = getLoadedClasses();
+        MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         Map<Class, MetaClass> originalMetaClasses = new HashMap();
+        for (Class theClass : allClasses) {
+            MetaClass originalMetaClass = registry.getMetaClass(theClass);
+            originalMetaClasses.put(theClass, originalMetaClass);
+        }
+
+        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
+        registry.setMetaClassCreationHandle(this);
+
+        // creates and sets meta classes from the original meta classes
+        for (Map.Entry<Class, MetaClass> e : originalMetaClasses.entrySet()) {
+            Class theClass = e.getKey();
+            MetaClass metaClass = e.getValue();
+            MetaClass proxyMetaClass = proxyMetaClass(theClass, metaClass);
+            registry.setMetaClass(theClass, proxyMetaClass); 
+        }
+    }
+
+    private Set<Class> getLoadedClasses() {
+        Set<Class> allClasses = new HashSet();
+        /*
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
             Class theClass = classInfo.get();
+            if (theClass.equals(String.class)) {
+                System.out.println("found String metaClass: " + registry.getMetaClass(theClass));
+            }
             originalMetaClasses.put(theClass, registry.getMetaClass(theClass));
         }
-        /*
+        */
+        // ClassInfo.getAllClassInfo() returns cached class info and there is a case it doesn't return
+        // all of the loaded classes. This is a hack to ignore the cache.
         try {
             Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
             classSetField.setAccessible(true);
             ClassInfo.ClassInfoSet classSet = (ClassInfo.ClassInfoSet) classSetField.get(ClassInfo.class);
             for (ClassInfo classInfo : (Collection<ClassInfo>) classSet.values()) {
-                Class theClass = classInfo.get();
-                MetaClass originalMetaClass = registry.getMetaClass(theClass);
-                originalMetaClasses.put(theClass, originalMetaClass);
+                allClasses.add(classInfo.get());
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        */
-
-        originalMetaClassCreationHandle = registry.getMetaClassCreationHandler();
-        registry.setMetaClassCreationHandle(this);
-        
-        // creates and sets meta classes from the original meta classes
-        for (Map.Entry<Class, MetaClass> e : originalMetaClasses.entrySet()) {
-            Class theClass = e.getKey();
-            MetaClass metaClass = e.getValue();
-            MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
-            registry.setMetaClass(theClass, proxyMetaClass); 
-        }
-
-        List<Reference> refs = (List) opts.get("references");
-        if (refs != null) {
-            for (Reference ref : refs) {
-                Object obj = ref.get();
-                if (obj != null) {
-                    Class theClass = obj.getClass();
-                    if (obj instanceof GroovyObject) {
-                        GroovyObject gobj = (GroovyObject) obj;
-                        MetaClass metaClass = gobj.getMetaClass();
-                        MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
-                        DefaultGroovyMethods.setMetaClass(gobj, proxyMetaClass);
-                    } else {
-                        MetaClass metaClass = DefaultGroovyMethods.getMetaClass(obj);
-                        MetaClass proxyMetaClass = proxyMetaClass(registry, theClass, metaClass);
-                        MetaClassHelper.doSetMetaClass(obj, proxyMetaClass);
-                    }
-                }
-            }
-        }
-
+        return allClasses;
     }
 
     /**
@@ -198,12 +214,20 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
      */
     public void stop() {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+        Set<ProfileMetaClass> proxyMetaClasses = new HashSet(); 
+        for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
+            Class theClass = classInfo.get();
+            MetaClass metaClass = registry.getMetaClass(theClass);
+            if (metaClass instanceof ProfileMetaClass) {
+                proxyMetaClasses.add((ProfileMetaClass) metaClass);
+            }
+        }
+        
+        // resetting the meta class creation handler clears all the meta classes.
         registry.setMetaClassCreationHandle(originalMetaClassCreationHandle);
 
         for (ProfileMetaClass proxyMetaClass : proxyMetaClasses) {
-            Class theClass = proxyMetaClass.getTheClass();
-            MetaClass pureMetaClass = proxyMetaClass.getAdaptee();
-            registry.setMetaClass(theClass, pureMetaClass);
+            registry.setMetaClass(proxyMetaClass.getTheClass(), proxyMetaClass.getAdaptee());
         }
     }
 
@@ -222,14 +246,12 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         return new ProxyReport(interceptor.getTree());
     }
     
-    private MetaClass proxyMetaClass(
-            MetaClassRegistry registry, Class theClass, MetaClass metaClass) {
+    private MetaClass proxyMetaClass(Class theClass, MetaClass metaClass) {
         if (MetaClass.class.isAssignableFrom(theClass)) {
             return metaClass;
         }
-        ProfileMetaClass proxyMetaClass = new ProfileMetaClass(registry, theClass, metaClass);
+        ProfileMetaClass proxyMetaClass = new ProfileMetaClass(theClass, metaClass);
         proxyMetaClass.setInterceptor(interceptor);
-        proxyMetaClasses.add(proxyMetaClass);
         return proxyMetaClass;
     }
 
@@ -239,7 +261,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
             return super.createNormalMetaClass(theClass, registry);
         }
         MetaClass metaClass = new MetaClassImpl(registry, theClass);
-        return proxyMetaClass(registry, theClass, metaClass);
+        return proxyMetaClass(theClass, metaClass);
     }
 
 }

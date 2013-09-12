@@ -33,9 +33,8 @@ public class AdaptingExpandoMetaClass extends ExpandoMetaClass implements Adapti
     
     protected MetaClass adaptee;
 
-    public AdaptingExpandoMetaClass(
-            MetaClass metaClass, MetaClassRegistry registry, Class theClass) {
-        super(registry, theClass, false, false, null);
+    public AdaptingExpandoMetaClass(MetaClass metaClass, Class theClass) {
+        super(theClass, false, false);
         setAdaptee(metaClass);
     }
     
@@ -446,10 +445,12 @@ public class AdaptingExpandoMetaClass extends ExpandoMetaClass implements Adapti
         return super.createConstructorSite(site, args);
     }
 
+    /* $if version >= 2.1.0 $ */
     @Override
     public MetaMethod retrieveConstructor(Object[] args) {
         return expandableDelegate().retrieveConstructor(args);
     }
+    /* $endif$ */
 
 // AdaptingMetaClass
 

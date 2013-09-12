@@ -2,13 +2,28 @@ package groovyx.gprof
 
 import groovyx.gprof.flat.FlatReportNormalizer
 import org.codehaus.groovy.reflection.ClassInfo
+import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import spock.lang.Specification
 
 @Mixin(TestHelper)
 class ProfilerTest extends Specification {
-
+    
     def flatten(CallTree callTree) {
         return new FlatReportNormalizer().normalize(callTree)
+    }
+    
+    def setup() {
+    }
+    
+    def cleanup() {
+    }
+    
+    def clearMetaClass(Class klass) {
+        GroovySystem.metaClassRegistry.removeMetaClass(klass)    
+    }
+    
+    def clearMetaClass(Object obj) {
+        GroovySystem.metaClassRegistry.setMetaClass(obj, null)
     }
     
     def "run with closure"() {
@@ -21,7 +36,7 @@ class ProfilerTest extends Specification {
         flatten(report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
     }
     
     def "start and stop"() {
@@ -35,7 +50,7 @@ class ProfilerTest extends Specification {
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
     }
 
     def "reuse data when restarted"() {
@@ -52,7 +67,7 @@ class ProfilerTest extends Specification {
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
             .calls == 2
     }
 
@@ -71,32 +86,38 @@ class ProfilerTest extends Specification {
         flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method == method(Thread.class.name, "sleep") }
+            .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
             .calls == 1
     }
-    
+
     def "keeps an expando static method which is added before profiling"() {
         when:
         String.metaClass.static.abc = { "ABC" }
 
         then:
-        def r
+        def r = false
         profile {
             r = String.abc() == "ABC"
         }
         r
+        
+        cleanup:
+        clearMetaClass(String)
     }
-    
+
     def "keeps an expando instance method which is added before profiling"() {
         when:
         String.metaClass.abc = { "ABC" }
         
         then:
-        def r
+        def r = false
         profile {
             r = new String().abc() == "ABC"
         }
         r
+        
+        cleanup:
+        clearMetaClass(String)
     }
     
     def "keeps an expando property which is added before profiling"() {
@@ -109,6 +130,9 @@ class ProfilerTest extends Specification {
             r = new String().abc == "ABC"
         }
         r
+
+        cleanup:
+        clearMetaClass(String)
     }
     
     def "profiles an expando method whith is added to a variable before profiling"() {
@@ -138,6 +162,9 @@ class ProfilerTest extends Specification {
             .find { true }
             .methodElements
             .find { e -> e.method.methodName == "abc" }
+        
+        cleanup:
+        clearMetaClass(this)
     }
     
     def "profiles 'call' in expando method which is added to the caller before profiling"() {
@@ -154,8 +181,11 @@ class ProfilerTest extends Specification {
         flatten(report.callTree)
             .find { true }
             .methodElements
-            .find { it.method == method(clos.class.name, "call") }
+            .find { it.method.className == clos.class.name && it.method.methodName == "call" }
             .calls == 2
+        
+        cleanup:
+        clearMetaClass(this)
     }
     
     def "profiles 'call' in expando static method which is added to the caller before profiling"() {
@@ -172,16 +202,18 @@ class ProfilerTest extends Specification {
         flatten(report.callTree)
             .find { true }
             .methodElements
-            .find { it.method == method(clos.class.name, "call") }
+            .find { it.method.className == clos.class.name && it.method.methodName == "call" }
             .calls == 2
+        
+        cleanup:
+        clearMetaClass(this)
     }
     
     def "profiles an expando instance method which is added while profiling"() {
         when:
         def report = profile {
             String.metaClass.abc = { "ABC" }
-            def s = "123"
-            s.abc()
+            new String().abc()
         }
 
         then:
@@ -189,7 +221,9 @@ class ProfilerTest extends Specification {
             .find { true }
             .methodElements
             .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
-
+        
+        cleanup:
+        clearMetaClass(String)
     }
 
     def "profiles an expando static method which is added while profiling"() {
@@ -204,6 +238,9 @@ class ProfilerTest extends Specification {
             .find { true }
             .methodElements
             .find { e -> e.method.className == String.class.name && e.method.methodName == "abc" }
+        
+        cleanup:
+        clearMetaClass(String)
 
     }
     
@@ -242,6 +279,9 @@ class ProfilerTest extends Specification {
             .methodElements
             .find { e -> e.method.methodName == "call" }
             .calls == 2
+        
+        cleanup:
+        clearMetaClass(Math)
     }
     
     def "remains an expando static method which is added while profiling"() {
@@ -252,6 +292,9 @@ class ProfilerTest extends Specification {
 
         then:
         String.abc() == "ABC"
+
+        cleanup:
+        clearMetaClass(String)
     }
     
     def "remains an expando instance method which is added while profiling"() {
@@ -262,6 +305,9 @@ class ProfilerTest extends Specification {
         
         then:
         new String().abc() == "ABC"
+
+        cleanup:
+        clearMetaClass(String)
     }
 
     def "remains an expando property which is added while profiling"() {
@@ -272,5 +318,9 @@ class ProfilerTest extends Specification {
 
         then:
         new String().abc == "ABC"
+
+        cleanup:
+        clearMetaClass(String)
     }
+    
 }

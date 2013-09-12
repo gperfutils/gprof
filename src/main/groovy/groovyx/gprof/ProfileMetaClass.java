@@ -29,8 +29,8 @@ public class ProfileMetaClass
     
     protected CallInterceptor interceptor = null;
 
-    public ProfileMetaClass(MetaClassRegistry registry, Class theClass, MetaClass metaClass) {
-        super(metaClass, registry, theClass);
+    public ProfileMetaClass(Class theClass, MetaClass metaClass) {
+        super(metaClass, theClass);
         super.initialize();
     }
 
@@ -54,7 +54,7 @@ public class ProfileMetaClass
             Closure closure = ((ClosureInvokingMethod) metaMethod).getClosure();
             if (!(closure.getMetaClass() instanceof ProfileMetaClass)) {
                 ProfileMetaClass proxyMetaClass = 
-                        new ProfileMetaClass(this.getRegistry(), closure.getClass(), closure.getMetaClass());
+                        new ProfileMetaClass(closure.getClass(), closure.getMetaClass());
                 proxyMetaClass.setInterceptor(interceptor);
                 closure.setMetaClass(proxyMetaClass);
             }
