@@ -8,7 +8,7 @@ as the GNU profiler, gprof does for C and C++.
 INSTALL
 -------
 
-  @Grab('org.gperfutils:gprof:0.2.0')
+  @Grab('org.gperfutils:gprof:0.3.0-groovy-2.1') // v0.3.0 for Groovy 2.1
 
 or other ways to install from the Maven Central repository or build a jar
 file from source code.
@@ -16,44 +16,56 @@ file from source code.
 EXAMPLE
 -------
 
-In the following code, GProf shows you that YourApp has two slow operation;
-one is a task that is short but repeated many times and another is a long task.
-
-  class YourApp {
-      void start() {
-          def foo = new Foo()
-          for (int i = 0; i < 100; i++) {
-              foo.doShortTask()
-          }
-          def bar = new Bar()
-          bar.doLongTask()
+  // slow !!
+  def fib(n) {
+      if (n < 2) {
+          n
+      } else {
+          fib(n - 1) + fib(n - 2)
       }
   }
 
-  class Bar {
-      void doLongTask() {
-          for (int i = 0; i < 1000000; i++);
-      }
-  }
-
-  class Foo {
-      void doShortTask() {
-          for (int i = 0; i < 10000; i++);
-      }
-  }
-
-  profile {  // or new groovyx.gprof.Profiler().run {
-      new YourApp().start()
+  profile {
+      fib(20)
   }.prettyPrint()
 
   /* stdout
-  %      calls  total ms  ms/call  min ms  max ms  method       class
-  47.59      1     54.33    54.33   54.33   54.33  doLongTask   Bar
-  40.05    100     45.72     0.46    0.29    2.09  doShortTask  Foo
-  11.92      1     13.61    13.61   13.61   13.61  start        YourApp
-   0.18      1      0.21     0.21    0.21    0.21  ctor         YourApp
-   0.13      1      0.14     0.14    0.14    0.14  ctor         Bar
-   0.13      1      0.14     0.14    0.14    0.14  ctor         Foo
+  Flat:
+
+   %    cumulative   self            self     total    self    total   self    total
+  time   seconds    seconds  calls  ms/call  ms/call  min ms  min ms  max ms  max ms  name
+  54.3        0.29     0.29      2   145.86   267.78   38.14   58.56  253.57  477.00  demo.fib
+  30.4        0.45     0.16  21890     0.00     0.00    0.00    0.00    0.80    0.80  java.lang.Integer.minus
+  15.0        0.53     0.08  10945     0.00     0.00    0.00    0.00    0.83    0.83  java.lang.Integer.plus
+   0.1        0.53     0.00      1     1.05   537.10    1.05  537.10    1.05  537.10  demo$_run_closure1.fib
+   0.0        0.53     0.00      1     0.13   537.23    0.13  537.23    0.13  537.23  demo$_run_closure1.doCall
+
+  Call graph:
+
+  index  % time  self  children  calls        name
+                 0.00      0.53          1/1      <spontaneous>
+  [1]     100.0  0.00      0.53            1  demo$_run_closure1.doCall [1]
+                 0.00      0.53          1/1      demo$_run_closure1.fib [2]
+  -----------------------------------------------------------------------------
+                 0.00      0.53          1/1      demo$_run_closure1.doCall [1]
+  [2]      99.9  0.00      0.53            1  demo$_run_closure1.fib [2]
+                 0.29      0.24          2/2      demo.fib [3]
+                 0.00      0.00      2/21890      java.lang.Integer.minus [4]
+                 0.00      0.00      1/10945      java.lang.Integer.plus [5]
+  -----------------------------------------------------------------------------
+                 0.29      0.24          2/2      demo$_run_closure1.fib [2]
+  [3]      99.6  0.29      0.24      2+21888  demo.fib [3]
+                 0.16      0.00  21888/21890      java.lang.Integer.minus [4]
+                 0.08      0.00  10944/10945      java.lang.Integer.plus [5]
+  -----------------------------------------------------------------------------
+                 0.00      0.00      2/21890      demo$_run_closure1.fib [2]
+                 0.16      0.00  21888/21890      demo.fib [3]
+  [4]      30.4  0.16      0.00        21890  java.lang.Integer.minus [4]
+  -----------------------------------------------------------------------------
+                 0.00      0.00      1/10945      demo$_run_closure1.fib [2]
+                 0.08      0.00  10944/10945      demo.fib [3]
+  [5]      15.0  0.08      0.00        10945  java.lang.Integer.plus [5]
+  -----------------------------------------------------------------------------
   */
 
 LICENSE
