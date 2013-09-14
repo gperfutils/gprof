@@ -23,24 +23,24 @@ import java.util.Map;
 
 public class ProxyReport extends Report {
     
-    private Report flatReport;
-    private Report callGraphReport;
+    private Report flat;
+    private Report callGraph;
 
     public ProxyReport(CallTree callTree) {
         super(callTree);
-        flatReport = new FlatReport(callTree);
-        callGraphReport = new CallGraphReport(callTree);
+        flat = new FlatReport(callTree);
+        callGraph = new CallGraphReport(callTree);
     }
     
     @Override
     public void prettyPrint(Map args, PrintWriter writer) {
         writer.println("Flat:");
         writer.println();
-        flatReport.prettyPrint(args, writer);
+        flat.prettyPrint(args, writer);
         writer.println();
         writer.println("Call graph:");
         writer.println();
-        callGraphReport.prettyPrint(args, writer);
+        callGraph.prettyPrint(args, writer);
     }
 
 }
