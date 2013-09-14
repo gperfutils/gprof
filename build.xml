@@ -93,12 +93,35 @@
 
   <target name="dist" description="Create everything needed for distribution.">
     <antcall target="binary-all" />
-    <antcall target="source" />
-    <antcall target="javadoc" />
+    <antcall target="source-all" />
+    <antcall target="javadoc-all" />
+  </target>
+
+  <target name="source-all" description="Create the source archives for all the supported versions of Groovy.">
+    <antcall target="source">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="source">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
   </target>
 
   <target name="source" description="Create the source archive.">
-    <zip destfile="${dist.dir}/${id}-${version}-sources.jar" basedir="." includes="src/**" />
+    <property name="build.src.dir" value="${build.dir}/${groovy.version.major}/src" />
+    <zip destfile="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}-sources.jar" basedir="${build.src.dir}" />
+  </target>
+
+  <target name="javadoc-all" description="Create the javadoc archives for all the supported versions of Groovy.">
+    <antcall target="javadoc">
+      <param name="groovy.version.major" value="2.0" />
+      <param name="groovy.version.minor" value="${groovy.2.0.version.minor}" />
+    </antcall>
+    <antcall target="javadoc">
+      <param name="groovy.version.major" value="2.1" />
+      <param name="groovy.version.minor" value="${groovy.2.1.version.minor}" />
+    </antcall>
   </target>
 
   <target name="javadoc" description="Create the javadoc archive." depends="-init">
@@ -106,14 +129,16 @@
       <dependency groupId="org.codehaus.groovy" artifactId="groovy-all" version="${groovy.version.major}.${groovy.version.minor}" />
     </artifact:dependencies>
     <taskdef name="groovydoc" classname="org.codehaus.groovy.ant.Groovydoc" classpathref="groovydoc.classpath" />
-    <groovydoc destdir="${build.dir}/doc" sourcepath="${src.main.dir}" packagenames="**.*" use="true" private="false">
+    <property name="build.src.main.dir" value="${build.dir}/${groovy.version.major}/src/main" />
+    <property name="build.doc.dir" value="${build.dir}/${groovy.version.major}/doc" />
+    <groovydoc destdir="${build.doc.dir}" sourcepath="${build.src.main.dir}" packagenames="**.*" use="true" private="false">
       <link packages="java.,org.xml.,javax.,org.xml." href="http://download.oracle.com/javase/6/docs/api" />
       <link packages="groovy.,org.codehaus.groovy." href="http://groovy.codehaus.org/api" />
       <link packages="org.apache.tools.ant." href="http://evgeny-goldin.org/javadoc/ant/api" />
       <link packages="org.junit.,junit.framework." href="http://kentbeck.github.com/junit/javadoc/latest" />
       <link packages="org.codehaus.gmaven." href="http://evgeny-goldin.org/javadoc/gmaven" />
     </groovydoc>
-    <zip destfile="${dist.dir}/${id}-${version}-javadoc.jar" basedir="${build.dir}" includes="doc/**" update="true" />
+    <zip destfile="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}-javadoc.jar" basedir="${build.doc.dir}" update="true" />
   </target>
 
   <target name="binary-all" description="Create the binary archives for all the supported versions of Groovy.">
@@ -178,7 +203,7 @@
     <property name="groovy.version" value="${groovy.version.major}.${groovy.version.minor}" />
     <echo message="Compiling the test code with Groovy ${groovy.version}..." />
 
-    <property name="build.src.test.dir" value="${build.dir}/${groovy.version}/src/test" />
+    <property name="build.src.test.dir" value="${build.dir}/${groovy.version.major}/src/test" />
 
     <antcall target="-preprocess">
       <param name="pp.src.dir" value="${src.test.dir}" />
@@ -300,8 +325,8 @@
     <copy file="pom.xml" tofile="${maven.pom}" />    
     <replace file="${maven.pom}" token="@version@" value="${maven.artifact.version}" />
     <copy file="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}.jar" tofile="${maven.jar}" />    
-    <copy file="${dist.dir}/${id}-${version}-sources.jar" tofile="${maven.sources.jar}" />    
-    <copy file="${dist.dir}/${id}-${version}-javadoc.jar" tofile="${maven.javadoc.jar}" />    
+    <copy file="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}-sources.jar" tofile="${maven.sources.jar}" />    
+    <copy file="${dist.dir}/${id}-${version}-groovy-${groovy.version.major}-javadoc.jar" tofile="${maven.javadoc.jar}" />    
      
     <!-- sign and deploy the main artifact -->
     <artifact:mvn>
