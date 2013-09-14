@@ -47,10 +47,11 @@ class ProfilerTest extends Specification {
         p.stop()
         
         then:
-        flatten(p.report.callTree)
+        def elems = flatten(p.report.callTree)
             .find { true }
             .methodElements
-            .find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
+        elems.size() == 1 &&
+            elems.find { e -> e.method.className == Thread.class.name && e.method.methodName == "sleep" }
     }
 
     def "reuse data when restarted"() {

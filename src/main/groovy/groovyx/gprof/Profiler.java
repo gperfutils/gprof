@@ -50,7 +50,7 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
     static {
         defaultOptions = new HashMap();
         defaultOptions.put("includeMethods", Collections.emptyList());
-        defaultOptions.put("excludeMethods", Collections.emptyList());
+        defaultOptions.put("excludeMethods", Arrays.asList(Profiler.class.getName() + ".stop"));
         defaultOptions.put("includeThreads", Collections.emptyList());
         defaultOptions.put("excludeThreads", Collections.emptyList());
     }
