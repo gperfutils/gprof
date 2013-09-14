@@ -27,16 +27,15 @@ class ProxyPrinterTest extends Specification {
     }
     
     def "Prints using the default writer"() {
-        when:
+        setup:
         def os = new ByteArrayOutputStream()
         def sysout = System.out
         System.out = new PrintStream(os)
+        
+        when:
         new ProxyReport(tree( 
             methodCallNode("A", "a", 100)
         )).prettyPrint()
-        def out = os.toString()
-        System.out = sysout
-        
         
         then:
         def expected = """\
@@ -53,8 +52,10 @@ index  % time  self  children  calls  name
 [1]     100.0  0.10      0.00      1  A.a [1]          
 -------------------------------------------------------
 """
-        out == expected
+        os.toString() == expected
         
+        cleanup:
+        System.out = sysout
     }
 
     def "Prints mixed report"() {
