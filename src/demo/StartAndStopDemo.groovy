@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2013 Masato Nagai
  *
@@ -15,11 +14,20 @@
  * limitations under the License.
  */
 
-profile(includeThreads: [ "thread-*" ], excludeThreads: [ "thread-2" ]) {
-    Thread.start("thread-1") {
-        new ArrayList()
-    }.join()
-    Thread.start("thread-2") {
-        new LinkedList()
-    }.join()
-}.prettyPrint()
+import groovyx.gprof.*
+
+def doSomething() {
+    Thread.sleep(100)
+}
+
+def profiler = new Profiler()
+
+profiler.start()
+doSomething()
+profiler.stop()
+
+profiler.start()
+doSomething()
+profiler.stop()
+
+profiler.report.prettyPrint()

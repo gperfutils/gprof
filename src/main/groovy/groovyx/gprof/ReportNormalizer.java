@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2013 Masato Nagai
  *
@@ -14,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package groovyx.gprof;
 
-profile(includeThreads: [ "thread-*" ], excludeThreads: [ "thread-2" ]) {
-    Thread.start("thread-1") {
-        new ArrayList()
-    }.join()
-    Thread.start("thread-2") {
-        new LinkedList()
-    }.join()
-}.prettyPrint()
+import java.util.List;
+
+public interface ReportNormalizer {
+
+    List<? extends ReportElement> normalize(CallTree callTree);
+
+}

@@ -42,7 +42,7 @@ one is a task that is short but repeated many times and another is a long task.
       }
   }
 
-  profile {  // or new gprof.Profiler().run {
+  profile {  // or new groovyx.gprof.Profiler().run {
       new YourApp().start()
   }.prettyPrint()
 

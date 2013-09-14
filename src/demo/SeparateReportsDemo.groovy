@@ -15,11 +15,19 @@
  * limitations under the License.
  */
 
-profile(includeThreads: [ "thread-*" ], excludeThreads: [ "thread-2" ]) {
-    Thread.start("thread-1") {
-        new ArrayList()
-    }.join()
-    Thread.start("thread-2") {
-        new LinkedList()
-    }.join()
-}.prettyPrint()
+def report = profile {
+    new String()
+}
+
+println '''
+flat
+----
+'''
+report.flat.prettyPrint()
+
+println '''
+call graph
+----------
+'''
+report.callGraph.prettyPrint()
+
