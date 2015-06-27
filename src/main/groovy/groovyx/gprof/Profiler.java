@@ -21,6 +21,7 @@ import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.MetaClassHelper;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -185,24 +186,25 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
 
     private Set<Class> getLoadedClasses() {
         Set<Class> allClasses = new HashSet();
-        /*
-        for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
-            Class theClass = classInfo.get();
-            if (theClass.equals(String.class)) {
-                System.out.println("found String metaClass: " + registry.getMetaClass(theClass));
-            }
-            originalMetaClasses.put(theClass, registry.getMetaClass(theClass));
-        }
-        */
         // ClassInfo.getAllClassInfo() returns cached class info and there is a case it doesn't return
         // all of the loaded classes. This is a hack to ignore the cache.
         try {
             Field classSetField = ClassInfo.class.getDeclaredField("globalClassSet");
             classSetField.setAccessible(true);
+/* $if version < 2.4 $ */
             ClassInfo.ClassInfoSet classSet = (ClassInfo.ClassInfoSet) classSetField.get(ClassInfo.class);
             for (ClassInfo classInfo : (Collection<ClassInfo>) classSet.values()) {
                 allClasses.add(classInfo.get());
             }
+/* $endif$ */
+/* $if version >= 2.4 $ */
+            Object classSet = classSetField.get(ClassInfo.class);
+            Method valuesMethod = classSet.getClass().getDeclaredMethod("values");
+            valuesMethod.setAccessible(true);
+            for (ClassInfo classInfo : (Collection<ClassInfo>) valuesMethod.invoke(classSet)) {
+                allClasses.add(classInfo.getMetaClass().getTheClass());
+            }
+/* $endif$ */
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -216,8 +218,13 @@ public class Profiler extends MetaClassRegistry.MetaClassCreationHandle {
         MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
         Set<ProfileMetaClass> proxyMetaClasses = new HashSet(); 
         for (ClassInfo classInfo : ClassInfo.getAllClassInfo()) {
+/* $if version < 2.4 $ */
             Class theClass = classInfo.get();
             MetaClass metaClass = registry.getMetaClass(theClass);
+/* $endif */            
+/* $if version >= 2.4 $ */
+            MetaClass metaClass = classInfo.getMetaClass();
+/* $endif */            
             if (metaClass instanceof ProfileMetaClass) {
                 proxyMetaClasses.add((ProfileMetaClass) metaClass);
             }
