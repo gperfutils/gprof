@@ -212,7 +212,7 @@
 
     <groovy>
       def spockVer = properties.'groovy.version.major'
-      if (spockVer == '2.1') {
+      if (spockVer >= '2.1') {
         // spock doesn't support groovy 2.1 officially yet.
         spockVer = '2.0'
       }
